@@ -2,7 +2,19 @@
 
 TEVIO(테비오)는 구매 이후 전자제품의 리콜, 보증, A/S 준비 상태를 관리하는 Flutter 모바일 앱입니다.
 
-## Sprint 0 Scope
+## Standards
+
+- 기본 브랜치: `main`
+- Git 작성자: `reserver7 <reserver7@users.noreply.github.com>`
+- 커밋 메시지: `feat: 한글 설명`, `fix: 한글 설명`, `chore: 한글 설명`
+- 앱 문구 기준: `테비오`, `Tevio`, `구매 이후`
+
+세부 규격은 문서에서 관리합니다.
+
+- [Project Standards](docs/project-standards.md)
+- [Design System](docs/design-system.md)
+
+## Sprint 0
 
 - Flutter iOS/Android 단일 앱 기반
 - Dart null safety
@@ -54,6 +66,8 @@ make check
 - `models`: 권리 상태 모델
 
 기능 전용 위젯은 각 feature 내부에 두고, 두 화면 이상에서 반복될 때만 design system으로 승격합니다.
+
+화면에서는 `tevio_design_system.dart`를 통해 토큰과 컴포넌트를 사용합니다.
 
 ## Troubleshooting
 
