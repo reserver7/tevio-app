@@ -8,7 +8,6 @@ import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/products/presentation/pages/product_detail_page.dart';
 import '../../features/products/presentation/pages/product_registration_page.dart';
 import '../../features/products/presentation/pages/products_page.dart';
-import '../../features/recalls/presentation/pages/public_recall_lookup_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import 'app_shell.dart';
@@ -61,14 +60,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/notifications',
-                builder: (context, state) => const NotificationsPage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                 path: '/settings',
                 builder: (context, state) => const SettingsPage(),
               ),
@@ -77,8 +68,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(
-        path: '/recalls',
-        builder: (context, state) => const PublicRecallLookupPage(),
+        path: '/notifications',
+        builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
         path: '/register',

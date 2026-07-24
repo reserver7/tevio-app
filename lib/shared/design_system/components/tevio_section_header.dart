@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens/tevio_colors.dart';
+import '../tokens/tevio_typography.dart';
 
 class TevioSectionHeader extends StatelessWidget {
   const TevioSectionHeader({
@@ -26,7 +27,7 @@ class TevioSectionHeader extends StatelessWidget {
             onPressed: onActionPressed,
             child: Text(
               actionLabel!,
-              style: const TextStyle(color: TevioColors.primary),
+              style: TevioTypography.label.copyWith(color: TevioColors.primary),
             ),
           ),
       ],

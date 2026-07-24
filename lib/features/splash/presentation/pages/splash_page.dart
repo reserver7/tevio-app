@@ -25,35 +25,31 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: TevioColors.primary,
       body: SafeArea(
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TevioLogo(
+              const TevioLogo(
                 variant: TevioLogoVariant.symbol,
                 size: 96,
-                foregroundColor: Colors.white,
+                foregroundColor: TevioColors.white,
               ),
-              SizedBox(height: TevioSpacing.lg),
+              const SizedBox(height: TevioSpacing.lg),
               Text(
                 '테비오',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  height: 1.3,
+                style: TevioTypography.display.copyWith(
+                  color: TevioColors.white,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              SizedBox(height: TevioSpacing.xs),
+              const SizedBox(height: TevioSpacing.xs),
               Text(
                 '구매 이후까지, 테비오',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
-                  height: 1.4,
+                style: TevioTypography.bodyMedium.copyWith(
+                  color: TevioColors.whiteMuted,
                   fontWeight: FontWeight.w600,
                 ),
               ),

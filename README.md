@@ -20,7 +20,7 @@ TEVIO(테비오)는 구매 이후 전자제품의 리콜, 보증, A/S 준비 상
 - Dart null safety
 - development, staging, production 환경 구분
 - Riverpod 앱 환경 Provider
-- go_router 기반 홈/제품 등록/공개 리콜 조회/설정 화면
+- go_router 기반 홈/내 제품/등록/마이 화면과 알림 진입 흐름
 - Dio 공통 클라이언트 기반
 - 주요 런타임 패키지와 lockfile 고정
 - 기본 lint/test/CI 구성

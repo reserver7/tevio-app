@@ -28,8 +28,9 @@ class AppTheme {
         centerTitle: false,
         backgroundColor: TevioColors.background,
         foregroundColor: TevioColors.textPrimary,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: TevioColors.transparent,
         elevation: 0,
+        titleTextStyle: TevioTypography.titleMedium,
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -63,7 +64,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(48),
           backgroundColor: TevioColors.primary,
-          foregroundColor: Colors.white,
+          foregroundColor: TevioColors.white,
           shape: const RoundedRectangleBorder(
             borderRadius: TevioRadius.mediumBorder,
           ),
@@ -84,6 +85,20 @@ class AppTheme {
             fontWeight: FontWeight.w700,
           ),
         ),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return TevioColors.white;
+          }
+          return TevioColors.textTertiary;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return TevioColors.primary;
+          }
+          return TevioColors.divider;
+        }),
       ),
     );
   }

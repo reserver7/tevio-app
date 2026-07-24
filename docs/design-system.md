@@ -20,6 +20,7 @@ import 'package:tevio_app/shared/design_system/tevio_design_system.dart';
 - `TevioTypography`: 앱 공통 텍스트 스타일
 - `TevioSpacing`: 간격 단위
 - `TevioRadius`: 모서리 반경
+- `TevioShadows`: 그림자 표현
 
 브랜드 기준 색상:
 
@@ -32,6 +33,8 @@ import 'package:tevio_app/shared/design_system/tevio_design_system.dart';
 | `danger` | `#E5484D` | 리콜, 위험, 실패 |
 | `background` | `#F6F8FC` | 앱 배경 |
 | `surface` | `#FFFFFF` | 카드와 입력 표면 |
+| `white` | `#FFFFFF` | primary 배경 위 전경 |
+| `whiteMuted` | `#B3FFFFFF` | primary 배경 위 보조 텍스트 |
 
 ## Component Rules
 
@@ -44,6 +47,8 @@ import 'package:tevio_app/shared/design_system/tevio_design_system.dart';
 - `TevioCard`: 정보 묶음용 표면.
 - `TevioStatusBadge`: 보증, 리콜, 알림 상태 표시.
 - `TevioRightsCard`: 구매 이후 권리 요약 카드.
+- `TevioProductCard`: 제품 목록과 홈 요약에 쓰는 제품 상태 카드.
+- `TevioNotificationCard`: 행동 필요성을 기준으로 알림을 보여주는 카드.
 - `TevioStateViews`: empty, loading, error 같은 공통 상태.
 
 새 컴포넌트를 design system에 추가하는 기준:
@@ -55,7 +60,9 @@ import 'package:tevio_app/shared/design_system/tevio_design_system.dart';
 ## Screen Implementation Rules
 
 - 화면에서 `Color(0x...)`를 직접 쓰지 않습니다.
+- 화면에서 Material `Colors.*`를 직접 쓰지 않습니다.
 - 화면에서 임의의 radius, spacing 값을 반복해서 쓰지 않습니다.
+- 기능 화면은 `shared/design_system/tokens`, `components`, `models` 하위 파일을 직접 import하지 않습니다.
 - 앱 문구는 `테비오`, `구매 이후` 표현을 기준으로 작성합니다.
 - 특정 화면에서만 필요한 작은 레이아웃 위젯은 feature 내부 private widget으로 둡니다.
 - design system 컴포넌트는 상태와 데이터 모델을 과하게 알지 않게 유지합니다.

@@ -14,15 +14,10 @@ class TevioBottomNavigation extends StatelessWidget {
   final ValueChanged<int> onDestinationSelected;
 
   static const _items = [
-    _NavigationItem(Icons.home_outlined, Icons.home, 'Home'),
-    _NavigationItem(Icons.inventory_2_outlined, Icons.inventory_2, 'Products'),
-    _NavigationItem(Icons.add_circle_outline, Icons.add_circle, 'Register'),
-    _NavigationItem(
-      Icons.notifications_none_outlined,
-      Icons.notifications,
-      'Notifications',
-    ),
-    _NavigationItem(Icons.settings_outlined, Icons.settings, 'Settings'),
+    _NavigationItem(Icons.home_outlined, Icons.home, '홈'),
+    _NavigationItem(Icons.inventory_2_outlined, Icons.inventory_2, '내 제품'),
+    _NavigationItem(Icons.add_circle_outline, Icons.add_circle, '등록'),
+    _NavigationItem(Icons.person_outline, Icons.person, '마이'),
   ];
 
   @override
@@ -77,7 +72,7 @@ class _NavigationButton extends StatelessWidget {
           minimumSize: const Size(44, 44),
           backgroundColor: selected
               ? TevioColors.primaryBackground
-              : Colors.transparent,
+              : TevioColors.transparent,
           shape: const RoundedRectangleBorder(
             borderRadius: TevioRadius.fullBorder,
           ),

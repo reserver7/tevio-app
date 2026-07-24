@@ -72,11 +72,13 @@ class TevioErrorState extends StatelessWidget {
     super.key,
     required this.title,
     required this.description,
+    this.actionLabel = '다시 시도',
     this.onRetryPressed,
   });
 
   final String title;
   final String description;
+  final String actionLabel;
   final VoidCallback? onRetryPressed;
 
   @override
@@ -102,7 +104,7 @@ class TevioErrorState extends StatelessWidget {
             ),
             if (onRetryPressed != null) ...[
               const SizedBox(height: TevioSpacing.lg),
-              TevioButton(label: '다시 시도', onPressed: onRetryPressed),
+              TevioButton(label: actionLabel, onPressed: onRetryPressed),
             ],
           ],
         ),
