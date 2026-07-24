@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../data/mock_products.dart';
 import '../../../../shared/design_system/tevio_design_system.dart';
 
 class ProductDetailPage extends StatelessWidget {
@@ -7,46 +9,55 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final product = findMockProduct(
+      GoRouterState.of(context).pathParameters['id'],
+    );
+
     return Scaffold(
       appBar: const TevioAppBar(title: '제품 상세'),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(TevioSpacing.lg),
-          children: const [
+          children: [
             TevioCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TevioStatusBadge(status: RightsStatus.urgent),
-                  SizedBox(height: TevioSpacing.md),
-                  Text('무선청소기', style: TevioTypography.titleLarge),
-                  SizedBox(height: TevioSpacing.xs),
-                  Text('XYZ · VC-2401', style: TevioTypography.bodyMedium),
+                  TevioStatusBadge(status: product.status),
+                  const SizedBox(height: TevioSpacing.md),
+                  Text(product.name, style: TevioTypography.titleLarge),
+                  const SizedBox(height: TevioSpacing.xs),
+                  Text(
+                    '${product.brand} · ${product.modelNumber}',
+                    style: TevioTypography.bodyMedium,
+                  ),
                 ],
               ),
             ),
-            SizedBox(height: TevioSpacing.lg),
-            TevioSectionHeader(title: '권리 요약'),
-            SizedBox(height: TevioSpacing.sm),
+            const SizedBox(height: TevioSpacing.lg),
+            const TevioSectionHeader(title: '권리 요약'),
+            const SizedBox(height: TevioSpacing.sm),
             TevioRightsCard(
-              status: RightsStatus.urgent,
-              productName: '무선청소기',
-              title: '리콜 가능성이 감지됐어요',
-              description: '모델번호가 공식 리콜 정보와 유사합니다. 확정 전 공식 페이지 확인이 필요해요.',
-              dueText: '즉시 확인 권장',
-              actionLabel: '공식 정보 확인',
+              status: product.status,
+              productName: product.name,
+              title: product.recommendedAction,
+              description: product.statusSummary,
+              dueText: product.warrantyText,
+              actionLabel: product.recommendedAction,
             ),
-            SizedBox(height: TevioSpacing.lg),
-            TevioSectionHeader(title: '제품 정보'),
-            SizedBox(height: TevioSpacing.sm),
+            const SizedBox(height: TevioSpacing.lg),
+            const TevioSectionHeader(title: '제품 정보'),
+            const SizedBox(height: TevioSpacing.sm),
             TevioCard(
               child: Column(
                 children: [
-                  TevioInfoRow(label: '구매일', value: '2025.11.03'),
-                  Divider(height: TevioSpacing.xl),
-                  TevioInfoRow(label: '구매처', value: '온라인 스토어'),
-                  Divider(height: TevioSpacing.xl),
-                  TevioInfoRow(label: '영수증', value: '보관됨'),
+                  TevioInfoRow(label: '구매일', value: product.purchasedAt),
+                  const Divider(height: TevioSpacing.xl),
+                  TevioInfoRow(label: '구매처', value: product.purchaseStore),
+                  const Divider(height: TevioSpacing.xl),
+                  TevioInfoRow(label: '영수증', value: product.receiptStatus),
+                  const Divider(height: TevioSpacing.xl),
+                  TevioInfoRow(label: '반품·교환', value: product.returnText),
                 ],
               ),
             ),

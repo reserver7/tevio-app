@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens/tevio_colors.dart';
+import '../tokens/tevio_typography.dart';
 
 enum TevioLogoVariant { symbol, korean, english }
 
@@ -47,7 +48,7 @@ class TevioLogo extends StatelessWidget {
           SizedBox(width: size * 0.22),
           Text(
             text,
-            style: TextStyle(
+            style: TevioTypography.titleLarge.copyWith(
               color: textColor,
               fontSize: size * 0.58,
               height: 1,

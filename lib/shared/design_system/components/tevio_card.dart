@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../tokens/tevio_colors.dart';
 import '../tokens/tevio_radius.dart';
+import '../tokens/tevio_shadows.dart';
 import '../tokens/tevio_spacing.dart';
 
 class TevioCard extends StatelessWidget {
   const TevioCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(TevioSpacing.md),
+    this.padding = const EdgeInsets.all(TevioSpacing.lg),
     this.onTap,
   });
 
@@ -18,20 +19,17 @@ class TevioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = DecoratedBox(
-      decoration: BoxDecoration(
-        color: TevioColors.surface,
-        borderRadius: TevioRadius.largeBorder,
-        border: Border.all(color: TevioColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A0F1E3A),
-            blurRadius: 16,
-            offset: Offset(0, 8),
-          ),
-        ],
+    final content = ClipRRect(
+      borderRadius: TevioRadius.largeBorder,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: TevioColors.surface,
+          borderRadius: TevioRadius.largeBorder,
+          border: Border.all(color: TevioColors.border),
+          boxShadow: TevioShadows.card,
+        ),
+        child: Padding(padding: padding, child: child),
       ),
-      child: Padding(padding: padding, child: child),
     );
 
     if (onTap == null) {
@@ -39,7 +37,8 @@ class TevioCard extends StatelessWidget {
     }
 
     return Material(
-      color: Colors.transparent,
+      color: TevioColors.transparent,
+      borderRadius: TevioRadius.largeBorder,
       child: InkWell(
         onTap: onTap,
         borderRadius: TevioRadius.largeBorder,

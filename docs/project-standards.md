@@ -59,7 +59,9 @@ lib/
 ## Routing Rules
 
 - 라우팅은 `go_router`를 사용합니다.
-- 앱 하단 탭은 `StatefulShellRoute.indexedStack`을 기준으로 유지합니다.
+- 앱 하단 탭은 `홈`, `내 제품`, `등록`, `마이` 4개를 기준으로 유지합니다.
+- 알림은 하단 탭이 아니라 홈 상단 알림 아이콘에서 진입합니다.
+- 현재 단계에서 전역 검색은 제공하지 않습니다.
 - iOS 사용자가 기대하는 뒤로가기 제스처를 막지 않도록, 일반 화면 전환은 Flutter 기본 `Navigator`/`go_router` 흐름을 따릅니다.
 - 탭 전환은 새 페이지 push가 아니라 shell branch 이동으로 처리합니다.
 
@@ -69,6 +71,12 @@ lib/
 - 디자인 시스템만을 위해 무거운 UI 프레임워크를 추가하지 않습니다.
 - 새 패키지를 추가하면 `pubspec.lock`을 함께 갱신합니다.
 
+## Mock Data Rules
+
+- 실제 API가 연결되지 않은 화면은 feature의 `data/mock_*.dart`에서 샘플 데이터를 관리합니다.
+- 화면 파일에 제품, 알림, 권리 상태 샘플 데이터를 직접 길게 작성하지 않습니다.
+- mock 모델은 이후 repository 또는 service 구현으로 교체하기 쉽도록 feature의 `domain/models`에 둡니다.
+
 ## Verification Policy
 
 평소 권장 검증 명령은 아래와 같습니다.
@@ -76,5 +84,11 @@ lib/
 ```sh
 make check
 ```
+
+`test/architecture_test.dart`는 문서 규칙 중 아래 항목을 코드로 강제합니다.
+
+- 앱과 feature는 `tevio_design_system.dart` 배럴만 import합니다.
+- raw color, Material `Colors`, raw `TextStyle`, raw radius 사용은 token 파일 밖에서 금지합니다.
+- 금지된 브랜드 문구는 앱 코드에 들어가지 않게 막습니다.
 
 다만 현재 작업 흐름에서는 사용자가 요청할 때만 검증 명령을 실행합니다.
