@@ -20,6 +20,7 @@ class TevioNotification {
     required this.receivedAt,
     required this.groupLabel,
     required this.actionLabel,
+    required this.route,
     this.isRead = false,
   });
 
@@ -33,7 +34,37 @@ class TevioNotification {
   final String receivedAt;
   final String groupLabel;
   final String actionLabel;
+  final String route;
   final bool isRead;
+
+  TevioNotification copyWith({
+    TevioNotificationCategory? category,
+    RightsStatus? status,
+    String? productName,
+    String? typeLabel,
+    String? title,
+    String? description,
+    String? receivedAt,
+    String? groupLabel,
+    String? actionLabel,
+    String? route,
+    bool? isRead,
+  }) {
+    return TevioNotification(
+      id: id,
+      category: category ?? this.category,
+      status: status ?? this.status,
+      productName: productName ?? this.productName,
+      typeLabel: typeLabel ?? this.typeLabel,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      receivedAt: receivedAt ?? this.receivedAt,
+      groupLabel: groupLabel ?? this.groupLabel,
+      actionLabel: actionLabel ?? this.actionLabel,
+      route: route ?? this.route,
+      isRead: isRead ?? this.isRead,
+    );
+  }
 }
 
 extension TevioNotificationCategoryLabel on TevioNotificationCategory {

@@ -28,7 +28,10 @@ class TevioCard extends StatelessWidget {
           border: Border.all(color: TevioColors.border),
           boxShadow: TevioShadows.card,
         ),
-        child: Padding(padding: padding, child: child),
+        child: Material(
+          color: TevioColors.transparent,
+          child: Padding(padding: padding, child: child),
+        ),
       ),
     );
 

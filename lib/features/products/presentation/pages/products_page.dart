@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/mock_products.dart';
 import '../../../../shared/design_system/tevio_design_system.dart';
+import '../state/product_queries.dart';
 
-class ProductsPage extends StatelessWidget {
+class ProductsPage extends ConsumerWidget {
   const ProductsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final products = mockProducts;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final products = ref.watch(productSummariesQueryProvider);
 
     return Scaffold(
       appBar: const TevioAppBar(title: '제품', automaticallyImplyLeading: false),

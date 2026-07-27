@@ -28,4 +28,33 @@ class ProductSummary {
   final RightsStatus status;
   final String statusSummary;
   final String recommendedAction;
+
+  ProductSummary copyWith({
+    String? name,
+    String? brand,
+    String? modelNumber,
+    String? purchasedAt,
+    String? purchaseStore,
+    String? warrantyText,
+    String? returnText,
+    String? receiptStatus,
+    RightsStatus? status,
+    String? statusSummary,
+    String? recommendedAction,
+  }) {
+    return ProductSummary(
+      id: id,
+      name: name ?? this.name,
+      brand: brand ?? this.brand,
+      modelNumber: modelNumber ?? this.modelNumber,
+      purchasedAt: purchasedAt ?? this.purchasedAt,
+      purchaseStore: purchaseStore ?? this.purchaseStore,
+      warrantyText: warrantyText ?? this.warrantyText,
+      returnText: returnText ?? this.returnText,
+      receiptStatus: receiptStatus ?? this.receiptStatus,
+      status: status ?? this.status,
+      statusSummary: statusSummary ?? this.statusSummary,
+      recommendedAction: recommendedAction ?? this.recommendedAction,
+    );
+  }
 }

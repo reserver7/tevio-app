@@ -22,48 +22,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const OnboardingPage(),
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return AppShell(navigationShell: navigationShell);
+      ShellRoute(
+        builder: (context, state, child) {
+          return AppShell(location: state.uri.path, child: child);
         },
-        branches: [
-          StatefulShellBranch(
+        routes: [
+          GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+          GoRoute(
+            path: '/products',
+            builder: (context, state) => const ProductsPage(),
             routes: [
               GoRoute(
-                path: '/home',
-                builder: (context, state) => const HomePage(),
+                path: ':id',
+                builder: (context, state) => const ProductDetailPage(),
               ),
             ],
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/products',
-                builder: (context, state) => const ProductsPage(),
-                routes: [
-                  GoRoute(
-                    path: ':id',
-                    builder: (context, state) => const ProductDetailPage(),
-                  ),
-                ],
-              ),
-            ],
+          GoRoute(
+            path: '/register',
+            builder: (context, state) => const ProductRegistrationPage(),
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/register-tab',
-                builder: (context, state) => const ProductRegistrationPage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/settings',
-                builder: (context, state) => const SettingsPage(),
-              ),
-            ],
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const SettingsPage(),
           ),
         ],
       ),
@@ -72,8 +53,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
-        path: '/register',
-        builder: (context, state) => const ProductRegistrationPage(),
+        path: '/notification-products/:id',
+        builder: (context, state) => const ProductDetailPage(),
       ),
     ],
   );
