@@ -1,21 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/design_system/tevio_design_system.dart';
-
-enum _HomeScenario {
-  noProducts,
-  allSafe,
-  actionRequired,
-  groupedInfoRequired,
-  urgentRecall,
-  processing,
-  registrationInProgress,
-  notificationPermissionOff,
-  loading,
-  error,
-  offline,
-}
+import '../../../notifications/presentation/state/notification_queries.dart';
+import '../../../products/domain/models/product_summary.dart';
+import '../../../products/presentation/state/product_queries.dart';
 
 enum _HomePresentationType {
   empty,
@@ -27,52 +17,39 @@ enum _HomePresentationType {
   contextual,
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
-  static const _scenario = _HomeScenario.urgentRecall;
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final products = ref.watch(productSummariesQueryProvider);
+    final unreadNotificationsCount = ref.watch(
+      unreadNotificationsCountQueryProvider,
+    );
+    final snapshot = _HomeSnapshot.fromProducts(products);
+
     return Scaffold(
       appBar: AppBar(
         title: const TevioLogo(variant: TevioLogoVariant.symbol, size: 32),
         actions: [
-          _NotificationBell(onPressed: () => context.push('/notifications')),
+          _NotificationBell(
+            unreadCount: unreadNotificationsCount,
+            onPressed: () => context.push('/notifications'),
+          ),
         ],
       ),
-      body: SafeArea(child: _HomeContent(scenario: _scenario)),
+      body: SafeArea(child: _HomeContent(snapshot: snapshot)),
     );
   }
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent({required this.scenario});
+  const _HomeContent({required this.snapshot});
 
-  final _HomeScenario scenario;
+  final _HomeSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    if (scenario == _HomeScenario.loading) {
-      return const TevioLoadingState(label: '제품 상태를 확인하고 있어요');
-    }
-
-    if (scenario == _HomeScenario.error) {
-      return const TevioErrorState(
-        title: '상태를 불러오지 못했어요',
-        description: '잠시 후 다시 확인해 주세요.',
-      );
-    }
-
-    if (scenario == _HomeScenario.offline) {
-      return const TevioErrorState(
-        title: '인터넷 연결이 필요해요',
-        description: '연결되면 테비오가 제품 권리를 다시 확인할게요.',
-      );
-    }
-
-    final snapshot = _HomeSnapshot.from(scenario);
-
     return ListView(
       key: const PageStorageKey('home-scroll'),
       padding: const EdgeInsets.all(TevioSpacing.lg),
@@ -125,21 +102,26 @@ class _HomeContent extends StatelessWidget {
 }
 
 class _NotificationBell extends StatelessWidget {
-  const _NotificationBell({required this.onPressed});
+  const _NotificationBell({required this.unreadCount, required this.onPressed});
 
+  final int unreadCount;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
+    final icon = const Icon(Icons.notifications_none_outlined);
+
     return IconButton(
       tooltip: '알림',
       onPressed: onPressed,
-      icon: const Badge(
-        backgroundColor: TevioColors.danger,
-        textColor: TevioColors.white,
-        label: Text('2'),
-        child: Icon(Icons.notifications_none_outlined),
-      ),
+      icon: unreadCount == 0
+          ? icon
+          : Badge(
+              backgroundColor: TevioColors.danger,
+              textColor: TevioColors.white,
+              label: Text(unreadCount > 9 ? '9+' : '$unreadCount'),
+              child: icon,
+            ),
     );
   }
 }
@@ -190,7 +172,7 @@ class _TodayStatusCard extends StatelessWidget {
             TevioButton(
               label: snapshot.primaryAction!.ctaLabel,
               icon: Icons.arrow_forward_outlined,
-              onPressed: () => context.push(snapshot.primaryAction!.route),
+              onPressed: () => context.go(snapshot.primaryAction!.route),
             ),
           ],
         ],
@@ -242,7 +224,7 @@ class _ActionCard extends StatelessWidget {
       description: action.reason,
       dueText: action.dueText,
       actionLabel: action.ctaLabel,
-      onPressed: () => context.push(action.route),
+      onPressed: () => context.go(action.route),
     );
   }
 }
@@ -318,7 +300,7 @@ class _ContextualCta extends StatelessWidget {
           TevioButton(
             label: cta.label,
             icon: cta.icon,
-            onPressed: () => context.push(cta.route),
+            onPressed: () => context.go(cta.route),
           ),
         ],
       ),
@@ -424,9 +406,9 @@ class _HomeSnapshot {
     };
   }
 
-  factory _HomeSnapshot.from(_HomeScenario scenario) {
-    return switch (scenario) {
-      _HomeScenario.noProducts => const _HomeSnapshot(
+  factory _HomeSnapshot.fromProducts(List<ProductSummary> products) {
+    if (products.isEmpty) {
+      return const _HomeSnapshot(
         presentationType: _HomePresentationType.empty,
         status: RightsStatus.unknown,
         title: '첫 제품을 등록해 보세요',
@@ -438,158 +420,113 @@ class _HomeSnapshot {
           icon: Icons.add_box_outlined,
           route: '/register',
         ),
-      ),
-      _HomeScenario.allSafe => const _HomeSnapshot(
+      );
+    }
+
+    final urgentProducts = products
+        .where((product) => product.status == RightsStatus.urgent)
+        .toList();
+    final actionRequiredProducts = products
+        .where((product) => product.status == RightsStatus.actionRequired)
+        .toList();
+    final processingProducts = products
+        .where((product) => product.status == RightsStatus.processing)
+        .toList();
+    final detectedProducts = products
+        .where((product) => product.status == RightsStatus.detected)
+        .toList();
+    final safeCount = products
+        .where(
+          (product) =>
+              product.status == RightsStatus.safe ||
+              product.status == RightsStatus.completed,
+        )
+        .length;
+    final attentionProducts = [
+      ...urgentProducts,
+      ...actionRequiredProducts,
+      ...detectedProducts,
+    ];
+    final primaryProduct = attentionProducts.isNotEmpty
+        ? attentionProducts.first
+        : null;
+    final productSummary = _ProductSummaryData(
+      totalCount: products.length,
+      safeCount: safeCount,
+      actionRequiredCount: attentionProducts.length,
+      highlight: attentionProducts.isEmpty
+          ? '새로운 리콜 대상은 없어요.'
+          : '${attentionProducts.first.name}부터 확인해 주세요.',
+    );
+
+    if (primaryProduct == null) {
+      return _HomeSnapshot(
         presentationType: _HomePresentationType.safe,
         status: RightsStatus.safe,
         title: '현재 확인할 내용이 없어요',
-        description: '등록한 제품 8개를 테비오가 계속 확인하고 있어요.',
+        description: '등록한 제품 ${products.length}개를 테비오가 계속 확인하고 있어요.',
         summary: '마지막 확인 오늘 오후 2:30',
-        productSummary: _ProductSummaryData(
-          totalCount: 8,
-          safeCount: 8,
-          actionRequiredCount: 0,
-          highlight: '새로운 리콜 대상은 없어요.',
-        ),
+        productSummary: productSummary,
         recentChecks: [
           _RecentCheck(
             status: RightsStatus.safe,
-            title: '등록 제품 8개의 리콜 정보를 확인했어요',
+            title: '등록 제품 ${products.length}개의 권리 정보를 확인했어요',
             description: '새로운 리콜 대상은 없어요.',
             checkedAt: '오늘 오후 2:30',
           ),
         ],
-      ),
-      _HomeScenario.actionRequired => const _HomeSnapshot(
-        presentationType: _HomePresentationType.mixedActions,
-        status: RightsStatus.actionRequired,
-        title: '오늘 확인할 내용이 2개 있어요',
-        description: '보증 만료 임박 1개 · 정보 보완 1개',
-        primaryAction: _HomeAction(
-          status: RightsStatus.actionRequired,
-          productName: 'ABC 노트북',
-          title: '무상 보증이 곧 종료돼요',
-          reason: '최근 문제가 있었다면 종료 전에 점검받는 것이 좋아요.',
-          dueText: 'D-14 · 보증',
-          ctaLabel: '보증 내용 확인',
-          route: '/products/notebook-sample-nb-16p',
+      );
+    }
+
+    final primaryAction = _HomeAction.fromProduct(primaryProduct);
+    final nextActions = attentionProducts
+        .skip(1)
+        .map(_HomeAction.fromProduct)
+        .toList();
+    final urgentCount = urgentProducts.length;
+    final actionCount = actionRequiredProducts.length + detectedProducts.length;
+
+    return _HomeSnapshot(
+      presentationType: nextActions.isEmpty
+          ? _HomePresentationType.singleAction
+          : _HomePresentationType.mixedActions,
+      status: primaryProduct.status,
+      eyebrow: '${primaryProduct.brand} ${primaryProduct.name}',
+      title: _headlineFor(primaryProduct),
+      description: primaryProduct.statusSummary,
+      summary: [
+        if (urgentCount > 0) '긴급 $urgentCount개',
+        if (actionCount > 0) '확인 필요 $actionCount개',
+        if (processingProducts.isNotEmpty) '처리 중 ${processingProducts.length}개',
+      ].join(' · '),
+      primaryAction: primaryAction,
+      nextActions: nextActions,
+      processing: processingProducts.isEmpty
+          ? null
+          : _ProcessingItem.fromProduct(processingProducts.first),
+      productSummary: productSummary,
+      recentChecks: [
+        _RecentCheck(
+          status: RightsStatus.safe,
+          title: '등록 제품 ${products.length}개의 권리 정보를 확인했어요',
+          description: attentionProducts.isEmpty
+              ? '새로운 리콜 대상은 없어요.'
+              : '${attentionProducts.length}개 항목은 추가 확인이 필요해요.',
+          checkedAt: '오늘 오후 2:30',
         ),
-        nextActions: [
-          _HomeAction(
-            status: RightsStatus.actionRequired,
-            productName: '공기청정기',
-            title: '구매일 입력이 필요해요',
-            reason: '구매일을 입력하면 보증기간과 반품 가능 기간을 확인할 수 있어요.',
-            dueText: '정보 보완',
-            ctaLabel: '구매일 입력',
-            route: '/products/air-purifier-abc-123',
-          ),
-        ],
-      ),
-      _HomeScenario.groupedInfoRequired => const _HomeSnapshot(
-        presentationType: _HomePresentationType.groupedAction,
-        status: RightsStatus.actionRequired,
-        title: '제품 정보 보완이 필요해요',
-        description: '4개 제품의 모델번호가 없어 리콜과 보증을 정확히 판단할 수 없어요.',
-        summary: '모델번호 필요 4개',
-        primaryAction: _HomeAction(
-          status: RightsStatus.actionRequired,
-          productName: '제품 4개',
-          title: '모델번호 확인 필요',
-          reason: '정확한 리콜과 보증 판단을 위해 모델번호가 필요합니다.',
-          dueText: '정보 보완',
-          ctaLabel: '정보 보완하기',
-          route: '/products',
-        ),
-      ),
-      _HomeScenario.urgentRecall => const _HomeSnapshot(
-        presentationType: _HomePresentationType.singleAction,
-        status: RightsStatus.urgent,
-        eyebrow: 'XYZ 무선청소기',
-        title: '무선청소기 리콜 확인이 필요해요',
-        description: '배터리 과열 관련 리콜 대상일 수 있어요. 먼저 모델번호를 확인해 주세요.',
-        summary: '리콜 1개 · 보증 만료 임박 1개',
-        primaryAction: _HomeAction(
-          status: RightsStatus.urgent,
-          productName: 'XYZ 무선청소기',
-          title: '배터리 과열 관련 리콜 대상일 수 있어요',
-          reason: '모델번호를 확인하면 정확하게 판단할 수 있어요.',
-          dueText: '즉시 확인 권장',
-          ctaLabel: '모델번호 확인하기',
-          route: '/products/vacuum-xyz-vc-2401',
-        ),
-        nextActions: [
-          _HomeAction(
-            status: RightsStatus.actionRequired,
-            productName: 'Sample 노트북',
-            title: '보증 만료가 가까워요',
-            reason: '무상보증 종료 전 필요한 점검과 서류를 확인하세요.',
-            dueText: '28일 남음',
-            ctaLabel: '보증 정보 보기',
-            route: '/products/notebook-sample-nb-16p',
-          ),
-        ],
-        processing: _ProcessingItem(
-          title: '공기청정기 A/S 접수 완료',
-          description: '제조사 확인이 진행 중이에요.',
-          meta: '7월 25일 방문 예정',
-        ),
-        recentChecks: [
-          _RecentCheck(
-            status: RightsStatus.safe,
-            title: '공기청정기 보증기간을 확인했어요',
-            description: '보증 종료까지 364일 남았어요.',
-            checkedAt: '오늘 오후 2:30',
-          ),
-        ],
-      ),
-      _HomeScenario.processing => const _HomeSnapshot(
-        presentationType: _HomePresentationType.processing,
-        status: RightsStatus.processing,
-        title: '확인할 긴급 항목은 없어요',
-        description: '진행 중인 A/S 일정만 확인하면 됩니다.',
-        summary: '제품 3개 확인 중',
-        processing: _ProcessingItem(
-          title: '노트북 무상 점검',
-          description: '제조사 접수 완료',
-          meta: '7월 25일 방문 예정',
-        ),
-        productSummary: _ProductSummaryData(
-          totalCount: 3,
-          safeCount: 2,
-          actionRequiredCount: 1,
-          highlight: '처리 중인 항목은 제품 상세에서 이어서 확인할 수 있어요.',
-        ),
-      ),
-      _HomeScenario.registrationInProgress => const _HomeSnapshot(
-        presentationType: _HomePresentationType.contextual,
-        status: RightsStatus.processing,
-        title: '등록 중인 제품이 있어요',
-        description: '구매 정보를 마저 입력하면 테비오가 권리 확인을 시작할 수 있어요.',
-        contextualCta: _HomeCta(
-          title: '제품 등록을 이어서 완료하세요',
-          description: '중단된 등록 정보를 이어서 확인할 수 있어요.',
-          label: '등록 이어하기',
-          icon: Icons.arrow_forward_outlined,
-          route: '/register',
-        ),
-      ),
-      _HomeScenario.notificationPermissionOff => const _HomeSnapshot(
-        presentationType: _HomePresentationType.contextual,
-        status: RightsStatus.actionRequired,
-        title: '중요한 알림이 꺼져 있어요',
-        description: '리콜과 보증 만료를 놓치지 않으려면 알림 허용이 필요해요.',
-        contextualCta: _HomeCta(
-          title: '중요한 순간은 테비오가 알려드릴게요',
-          description: '알림을 허용하면 리콜과 기한 임박 항목을 바로 받을 수 있어요.',
-          label: '알림 켜기',
-          icon: Icons.notifications_active_outlined,
-          route: '/settings',
-        ),
-      ),
-      _HomeScenario.loading ||
-      _HomeScenario.error ||
-      _HomeScenario.offline => throw StateError('Handled before snapshot.'),
+      ],
+    );
+  }
+
+  static String _headlineFor(ProductSummary product) {
+    return switch (product.status) {
+      RightsStatus.urgent => '${product.name} 리콜 확인이 필요해요',
+      RightsStatus.actionRequired => '${product.name} 확인이 필요해요',
+      RightsStatus.detected => '${product.name} 등록 정보를 확인 중이에요',
+      RightsStatus.processing => '${product.name} 처리가 진행 중이에요',
+      RightsStatus.safe ||
+      RightsStatus.completed ||
+      RightsStatus.unknown => '${product.name} 상태를 확인했어요',
     };
   }
 }
@@ -612,6 +549,30 @@ class _HomeAction {
   final String dueText;
   final String ctaLabel;
   final String route;
+
+  factory _HomeAction.fromProduct(ProductSummary product) {
+    return _HomeAction(
+      status: product.status,
+      productName: '${product.brand} ${product.name}',
+      title: product.recommendedAction,
+      reason: product.statusSummary,
+      dueText: _dueTextFor(product),
+      ctaLabel: product.recommendedAction,
+      route: '/products/${product.id}',
+    );
+  }
+
+  static String _dueTextFor(ProductSummary product) {
+    return switch (product.status) {
+      RightsStatus.urgent => '즉시 확인 권장',
+      RightsStatus.actionRequired => product.warrantyText,
+      RightsStatus.detected => '확인 중',
+      RightsStatus.processing => '처리 중',
+      RightsStatus.safe ||
+      RightsStatus.completed ||
+      RightsStatus.unknown => product.warrantyText,
+    };
+  }
 }
 
 class _ProcessingItem {
@@ -624,6 +585,14 @@ class _ProcessingItem {
   final String title;
   final String description;
   final String meta;
+
+  factory _ProcessingItem.fromProduct(ProductSummary product) {
+    return _ProcessingItem(
+      title: '${product.name} 상태를 확인하고 있어요',
+      description: product.statusSummary,
+      meta: product.recommendedAction,
+    );
+  }
 }
 
 class _ProductSummaryData {

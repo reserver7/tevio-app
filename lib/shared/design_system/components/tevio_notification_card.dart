@@ -48,7 +48,11 @@ class TevioNotificationCard extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: textTheme.titleMedium,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: isRead
+                        ? TevioColors.textSecondary
+                        : TevioColors.textPrimary,
+                  ),
                 ),
               ),
               Text(
@@ -73,7 +77,11 @@ class TevioNotificationCard extends StatelessWidget {
             description,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: textTheme.bodyMedium,
+            style: textTheme.bodyMedium?.copyWith(
+              color: isRead
+                  ? TevioColors.textTertiary
+                  : TevioColors.textSecondary,
+            ),
           ),
           const SizedBox(height: TevioSpacing.sm),
           Row(

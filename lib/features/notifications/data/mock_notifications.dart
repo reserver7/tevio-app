@@ -1,5 +1,5 @@
-import '../domain/models/tevio_notification.dart';
 import '../../../shared/design_system/tevio_design_system.dart';
+import '../domain/models/tevio_notification.dart';
 
 const mockNotifications = [
   TevioNotification(
@@ -13,6 +13,7 @@ const mockNotifications = [
     receivedAt: '지금',
     groupLabel: '오늘',
     actionLabel: '확인하기',
+    route: '/products/vacuum-xyz-vc-2401',
   ),
   TevioNotification(
     id: 'warranty-notebook',
@@ -25,6 +26,7 @@ const mockNotifications = [
     receivedAt: '오전 9:12',
     groupLabel: '오늘',
     actionLabel: '보증 보기',
+    route: '/products/notebook-sample-nb-16p',
     isRead: true,
   ),
   TevioNotification(
@@ -38,6 +40,7 @@ const mockNotifications = [
     receivedAt: '어제',
     groupLabel: '어제',
     actionLabel: '정보 보완',
+    route: '/products/air-purifier-abc-123',
   ),
   TevioNotification(
     id: 'service-case-update',
@@ -50,6 +53,7 @@ const mockNotifications = [
     receivedAt: '어제',
     groupLabel: '어제',
     actionLabel: '내역 보기',
+    route: '/products/vacuum-xyz-vc-2401',
     isRead: true,
   ),
   TevioNotification(
@@ -63,6 +67,7 @@ const mockNotifications = [
     receivedAt: '7월 22일',
     groupLabel: '이전 알림',
     actionLabel: '등록하기',
+    route: '/register',
     isRead: true,
   ),
 ];

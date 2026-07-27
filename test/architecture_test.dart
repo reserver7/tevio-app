@@ -29,6 +29,49 @@ void main() {
     );
   });
 
+  test('pages do not import feature data sources directly', () {
+    final violations = <String>[];
+
+    for (final file in libFiles.where(_isPresentationPageFile)) {
+      final source = file.readAsStringSync();
+
+      if (source.contains('/data/') ||
+          source.contains("import '../../data/") ||
+          source.contains("import '../data/")) {
+        violations.add(file.path);
+      }
+    }
+
+    expect(
+      violations,
+      isEmpty,
+      reason: 'page는 state/query provider를 통해 data 계층을 사용해야 합니다.',
+    );
+  });
+
+  test('mock data stays behind repositories', () {
+    final violations = <String>[];
+
+    for (final file in libFiles) {
+      if (file.path.contains('/data/')) {
+        continue;
+      }
+
+      final source = file.readAsStringSync();
+
+      if (source.contains('mockProducts') ||
+          source.contains('mockNotifications')) {
+        violations.add(file.path);
+      }
+    }
+
+    expect(
+      violations,
+      isEmpty,
+      reason: 'mock 데이터는 repository 구현 내부에서만 직접 참조해야 합니다.',
+    );
+  });
+
   test('raw design values stay inside design system token files', () {
     final violations = <String>[];
 
@@ -79,6 +122,10 @@ void main() {
 
     expect(violations, isEmpty, reason: '앱 문구는 테비오 브랜드 언어 규격을 따라야 합니다.');
   });
+}
+
+bool _isPresentationPageFile(File file) {
+  return file.path.contains('/presentation/pages/');
 }
 
 bool _isAppOrFeatureFile(File file) {

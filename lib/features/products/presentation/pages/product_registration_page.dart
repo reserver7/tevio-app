@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../state/product_registration_session.dart';
 import '../../../../shared/design_system/tevio_design_system.dart';
+import '../state/product_registration_result.dart';
+import '../state/product_registration_session.dart';
 
 enum _RegistrationStep {
   method,
+  analyzing,
   productInfo,
   candidate,
   notifications,
+  registering,
   complete,
 }
 
@@ -41,6 +45,7 @@ class _ProductRegistrationPageState
   bool _returnAlert = true;
   _RegistrationFailure? _failure;
   bool _hasShownMockFailure = false;
+  String? _registeredProductId;
   int? _activeSession;
 
   @override
@@ -119,15 +124,17 @@ class _ProductRegistrationPageState
           });
         },
       ),
-      _RegistrationStep.productInfo => _ProductInfoStep(
+      _RegistrationStep.analyzing => _AnalysisStep(
+        method: _method,
         failure: _failure,
         onRetryPressed: () {
           setState(() {
             _failure = null;
-            _step = _RegistrationStep.candidate;
+            _step = _RegistrationStep.productInfo;
           });
         },
       ),
+      _RegistrationStep.productInfo => _ProductInfoStep(method: _method),
       _RegistrationStep.candidate => const _CandidateStep(),
       _RegistrationStep.notifications => _NotificationOptionsStep(
         recallAlert: _recallAlert,
@@ -137,6 +144,7 @@ class _ProductRegistrationPageState
         onWarrantyChanged: (value) => setState(() => _warrantyAlert = value),
         onReturnChanged: (value) => setState(() => _returnAlert = value),
       ),
+      _RegistrationStep.registering => const _RegisteringStep(),
       _RegistrationStep.complete => const TevioCompletionView(
         title: '제품 등록이 완료됐어요.',
         description: '이제 테비오가 이 제품의 권리를 계속 확인할게요.',
@@ -147,19 +155,28 @@ class _ProductRegistrationPageState
   bool get _canContinue {
     return switch (_step) {
       _RegistrationStep.method => _method != null,
+      _RegistrationStep.analyzing => true,
       _RegistrationStep.productInfo => true,
       _RegistrationStep.candidate => true,
       _RegistrationStep.notifications => true,
+      _RegistrationStep.registering => true,
       _RegistrationStep.complete => true,
     };
   }
 
   String get _primaryActionLabel {
     return switch (_step) {
-      _RegistrationStep.method => '제품 정보 입력',
+      _RegistrationStep.method =>
+        _method == _RegistrationMethod.camera
+            ? '촬영하기'
+            : _method == _RegistrationMethod.gallery
+            ? '이미지 선택'
+            : '제품 정보 입력',
+      _RegistrationStep.analyzing => '분석 시작',
       _RegistrationStep.productInfo => '후보 확인',
       _RegistrationStep.candidate => '알림 선택',
-      _RegistrationStep.notifications => '등록 완료',
+      _RegistrationStep.notifications => '등록하기',
+      _RegistrationStep.registering => '완료 보기',
       _RegistrationStep.complete => '확인',
     };
   }
@@ -175,13 +192,29 @@ class _ProductRegistrationPageState
   void _goNext() {
     if (_step == _RegistrationStep.complete) {
       ref.read(productRegistrationSessionProvider.notifier).reset();
+      if (_registeredProductId != null) {
+        context.go('/products/$_registeredProductId');
+      }
       return;
     }
 
-    if (_step == _RegistrationStep.productInfo) {
+    if (_step == _RegistrationStep.method) {
+      setState(() {
+        _step = switch (_method) {
+          _RegistrationMethod.camera ||
+          _RegistrationMethod.gallery => _RegistrationStep.analyzing,
+          _RegistrationMethod.modelNumber ||
+          _RegistrationMethod.manual => _RegistrationStep.productInfo,
+          null => _RegistrationStep.method,
+        };
+      });
+      return;
+    }
+
+    if (_step == _RegistrationStep.analyzing) {
       if (_hasShownMockFailure) {
         setState(() {
-          _step = _RegistrationStep.candidate;
+          _step = _RegistrationStep.productInfo;
         });
         return;
       }
@@ -189,6 +222,18 @@ class _ProductRegistrationPageState
       setState(() {
         _failure = _RegistrationFailure.ocrFailed;
         _hasShownMockFailure = true;
+      });
+      return;
+    }
+
+    if (_step == _RegistrationStep.notifications) {
+      final product = ref
+          .read(productRegistrationResultProvider)
+          .saveMockRegisteredProduct();
+
+      setState(() {
+        _registeredProductId = product.id;
+        _step = _RegistrationStep.registering;
       });
       return;
     }
@@ -207,6 +252,7 @@ class _ProductRegistrationPageState
     _returnAlert = true;
     _failure = null;
     _hasShownMockFailure = false;
+    _registeredProductId = null;
   }
 }
 
@@ -292,9 +338,14 @@ class _MethodTile extends StatelessWidget {
   }
 }
 
-class _ProductInfoStep extends StatelessWidget {
-  const _ProductInfoStep({required this.failure, required this.onRetryPressed});
+class _AnalysisStep extends StatelessWidget {
+  const _AnalysisStep({
+    required this.method,
+    required this.failure,
+    required this.onRetryPressed,
+  });
 
+  final _RegistrationMethod? method;
   final _RegistrationFailure? failure;
   final VoidCallback onRetryPressed;
 
@@ -311,11 +362,70 @@ class _ProductInfoStep extends StatelessWidget {
       );
     }
 
+    final title = method == _RegistrationMethod.camera
+        ? '영수증을 촬영하면 정보를 읽어올게요'
+        : '선택한 이미지에서 구매 정보를 읽어올게요';
+
+    final description = method == _RegistrationMethod.camera
+        ? '사진이 선명할수록 제품명, 구매일, 구매처를 더 정확히 확인할 수 있어요.'
+        : '주문 내역 화면이나 영수증 이미지가 가장 정확합니다.';
+
+    return TevioCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              color: TevioColors.primaryBackground,
+              borderRadius: TevioRadius.fullBorder,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(TevioSpacing.md),
+              child: Icon(
+                Icons.document_scanner_outlined,
+                color: TevioColors.primary,
+              ),
+            ),
+          ),
+          const SizedBox(height: TevioSpacing.md),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: TevioSpacing.xs),
+          Text(description, style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: TevioSpacing.md),
+          Text(
+            'Mock에서는 첫 분석 시도 후 실패 상태를 보여주고, 직접 입력으로 이어집니다.',
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: TevioColors.textTertiary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProductInfoStep extends StatelessWidget {
+  const _ProductInfoStep({required this.method});
+
+  final _RegistrationMethod? method;
+
+  @override
+  Widget build(BuildContext context) {
+    final helperText = switch (method) {
+      _RegistrationMethod.camera ||
+      _RegistrationMethod.gallery => '읽지 못한 정보만 직접 보완해 주세요.',
+      _RegistrationMethod.modelNumber => '제품 라벨에 적힌 모델번호를 기준으로 확인합니다.',
+      _RegistrationMethod.manual => '알 수 있는 정보만 먼저 입력해도 등록할 수 있어요.',
+      null => '제품 정보를 입력해 주세요.',
+    };
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const TevioSectionHeader(title: '제품 정보'),
         const SizedBox(height: TevioSpacing.sm),
+        Text(helperText, style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: TevioSpacing.lg),
         const _FieldLabel('제품명'),
         const TextField(decoration: InputDecoration(hintText: '예: 공기청정기')),
         const SizedBox(height: TevioSpacing.md),
@@ -470,6 +580,44 @@ class _NotificationOptionsStep extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _RegisteringStep extends StatelessWidget {
+  const _RegisteringStep();
+
+  @override
+  Widget build(BuildContext context) {
+    return TevioCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              color: TevioColors.primaryBackground,
+              borderRadius: TevioRadius.fullBorder,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(TevioSpacing.md),
+              child: Icon(Icons.sync_outlined, color: TevioColors.primary),
+            ),
+          ),
+          const SizedBox(height: TevioSpacing.md),
+          Text('제품 정보를 등록하고 있어요', style: TevioTypography.titleMedium),
+          const SizedBox(height: TevioSpacing.xs),
+          Text(
+            '모델번호, 구매일, 알림 설정을 저장하고 첫 권리 상태를 확인합니다.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: TevioSpacing.md),
+          const TevioInfoRow(label: '리콜 확인', value: '진행 중'),
+          const Divider(height: TevioSpacing.xl),
+          const TevioInfoRow(label: '보증 계산', value: '대기'),
+          const Divider(height: TevioSpacing.xl),
+          const TevioInfoRow(label: '알림 설정', value: '저장됨'),
+        ],
+      ),
     );
   }
 }

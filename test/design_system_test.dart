@@ -4,7 +4,7 @@ import 'package:tevio_app/app/theme/app_theme.dart';
 import 'package:tevio_app/shared/design_system/tevio_design_system.dart';
 
 void main() {
-  testWidgets('TevioLogo renders text variant', (tester) async {
+  testWidgets('TevioLogo renders symbol variant', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light(),
@@ -12,7 +12,8 @@ void main() {
       ),
     );
 
-    expect(find.text('테비오'), findsOneWidget);
+    expect(find.byType(TevioLogo), findsOneWidget);
+    expect(find.bySemanticsLabel('테비오'), findsOneWidget);
   });
 
   testWidgets('TevioRightsCard shows status and action', (tester) async {
@@ -31,7 +32,7 @@ void main() {
       ),
     );
 
-    expect(find.text('긴급'), findsOneWidget);
+    expect(find.text('긴급'), findsWidgets);
     expect(find.text('리콜 내용 확인'), findsOneWidget);
   });
 }

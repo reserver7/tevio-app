@@ -1,5 +1,5 @@
-import '../domain/models/product_summary.dart';
 import '../../../shared/design_system/tevio_design_system.dart';
+import '../domain/models/product_summary.dart';
 
 const mockProducts = [
   ProductSummary(
@@ -45,10 +45,3 @@ const mockProducts = [
     recommendedAction: '상세보기',
   ),
 ];
-
-ProductSummary findMockProduct(String? id) {
-  return mockProducts.firstWhere(
-    (product) => product.id == id,
-    orElse: () => mockProducts.first,
-  );
-}
