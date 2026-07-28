@@ -17,26 +17,31 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = _currentIndexFor(location);
+    final showBottomNavigation = _tabLocations.contains(location);
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: TevioColors.divider)),
-        ),
-        child: TevioBottomNavigation(
-          currentIndex: currentIndex,
-          onDestinationSelected: (index) {
-            if (index == 2) {
-              ref.read(productRegistrationSessionProvider.notifier).reset();
-            }
-            if (index == 3) {
-              ref.read(myTabSessionProvider.notifier).reset();
-            }
-            context.go(_tabLocations[index]);
-          },
-        ),
-      ),
+      bottomNavigationBar: showBottomNavigation
+          ? DecoratedBox(
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: TevioColors.divider)),
+              ),
+              child: TevioBottomNavigation(
+                currentIndex: currentIndex,
+                onDestinationSelected: (index) {
+                  if (index == 2) {
+                    ref
+                        .read(productRegistrationSessionProvider.notifier)
+                        .reset();
+                  }
+                  if (index == 3) {
+                    ref.read(myTabSessionProvider.notifier).reset();
+                  }
+                  context.go(_tabLocations[index]);
+                },
+              ),
+            )
+          : null,
     );
   }
 

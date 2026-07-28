@@ -14,6 +14,9 @@ class ProductSummary {
     required this.status,
     required this.statusSummary,
     required this.recommendedAction,
+    this.recallAlertEnabled = true,
+    this.warrantyAlertEnabled = true,
+    this.returnAlertEnabled = true,
   });
 
   final String id;
@@ -28,6 +31,9 @@ class ProductSummary {
   final RightsStatus status;
   final String statusSummary;
   final String recommendedAction;
+  final bool recallAlertEnabled;
+  final bool warrantyAlertEnabled;
+  final bool returnAlertEnabled;
 
   ProductSummary copyWith({
     String? name,
@@ -41,6 +47,9 @@ class ProductSummary {
     RightsStatus? status,
     String? statusSummary,
     String? recommendedAction,
+    bool? recallAlertEnabled,
+    bool? warrantyAlertEnabled,
+    bool? returnAlertEnabled,
   }) {
     return ProductSummary(
       id: id,
@@ -55,6 +64,9 @@ class ProductSummary {
       status: status ?? this.status,
       statusSummary: statusSummary ?? this.statusSummary,
       recommendedAction: recommendedAction ?? this.recommendedAction,
+      recallAlertEnabled: recallAlertEnabled ?? this.recallAlertEnabled,
+      warrantyAlertEnabled: warrantyAlertEnabled ?? this.warrantyAlertEnabled,
+      returnAlertEnabled: returnAlertEnabled ?? this.returnAlertEnabled,
     );
   }
 }

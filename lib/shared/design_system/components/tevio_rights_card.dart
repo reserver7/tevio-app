@@ -59,7 +59,17 @@ class TevioRightsCard extends StatelessWidget {
             children: [
               _RightsDuePill(status: status, label: dueText ?? status.label),
               const Spacer(),
-              Flexible(child: _RightsAction(label: actionLabel)),
+              Flexible(
+                child: Text(
+                  actionLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.labelLarge?.copyWith(
+                    color: TevioColors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
             ],
           ),
         ],
@@ -89,58 +99,12 @@ class _RightsDuePill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(status.icon, color: status.foreground, size: 16),
-            const SizedBox(width: TevioSpacing.xxs),
             Text(
               label,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: status.foreground,
                 fontWeight: FontWeight.w800,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RightsAction extends StatelessWidget {
-  const _RightsAction({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: TevioColors.primaryBackground,
-        borderRadius: TevioRadius.fullBorder,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TevioSpacing.sm,
-          vertical: TevioSpacing.xs,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: TevioColors.primary,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            const SizedBox(width: TevioSpacing.xxs),
-            const Icon(
-              Icons.chevron_right,
-              color: TevioColors.primary,
-              size: 18,
             ),
           ],
         ),

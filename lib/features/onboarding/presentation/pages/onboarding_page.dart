@@ -45,8 +45,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
 
     _controller.nextPage(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
+      duration: TevioMotion.normal,
+      curve: TevioMotion.standardCurve,
     );
   }
 
@@ -162,7 +162,7 @@ class _PageDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+      duration: TevioMotion.normal,
       width: isActive ? 20 : 8,
       height: 8,
       margin: const EdgeInsets.symmetric(horizontal: 4),

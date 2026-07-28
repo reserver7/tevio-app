@@ -8,6 +8,7 @@ import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/products/presentation/pages/product_detail_page.dart';
 import '../../features/products/presentation/pages/product_registration_page.dart';
 import '../../features/products/presentation/pages/products_page.dart';
+import '../../features/settings/presentation/pages/notification_settings_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import 'app_shell.dart';
@@ -45,6 +46,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/settings',
             builder: (context, state) => const SettingsPage(),
+            routes: [
+              GoRoute(
+                path: 'notifications',
+                builder: (context, state) => const NotificationSettingsPage(),
+              ),
+            ],
           ),
         ],
       ),

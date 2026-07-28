@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/design_system/tevio_design_system.dart';
+import '../../../../shared/infrastructure/result/tevio_failure.dart';
+import '../../../../shared/infrastructure/result/tevio_result.dart';
 import '../../data/product_repository.dart';
 import '../../domain/models/product_activity.dart';
 import '../../domain/models/product_summary.dart';
@@ -17,38 +19,135 @@ class ProductRegistrationResult {
 
   final Ref _ref;
 
-  ProductSummary saveMockRegisteredProduct() {
-    final product = ProductSummary(
-      id: 'air-purifier-abc-123-registered',
-      name: '공기청정기',
-      brand: 'ABC',
-      modelNumber: 'ABC-123',
-      purchasedAt: '2026.07.23',
-      purchaseStore: '브랜드 공식몰',
-      warrantyText: '365일 남음',
-      returnText: '14일 남음',
-      receiptStatus: '보관됨',
-      status: RightsStatus.detected,
-      statusSummary: '등록이 완료되어 리콜과 보증 정보를 확인하고 있어요.',
-      recommendedAction: '권리 상태 확인',
-    );
-
-    final savedProduct = _ref
-        .read(productCatalogProvider.notifier)
-        .addProduct(product);
-
-    _ref
-        .read(productActivityCommandProvider)
-        .record(
-          ProductActivity(
-            id: '${savedProduct.id}-registered',
-            productId: savedProduct.id,
-            occurredAtLabel: '방금',
-            title: '제품이 등록됐어요',
-            description: '테비오가 리콜, 보증, 반품·교환 가능 기간을 확인하기 시작했어요.',
-          ),
+  TevioResult<ProductSummary> registerProduct(ProductRegistrationInput input) {
+    try {
+      if (!input.isValid) {
+        return const TevioFailureResult(
+          TevioFailure(message: '제품명, 제조사, 모델번호를 입력해 주세요.'),
         );
+      }
 
-    return savedProduct;
+      final normalizedInput = input.normalized();
+      final product = ProductSummary(
+        id: normalizedInput.productId,
+        name: normalizedInput.name,
+        brand: normalizedInput.brand,
+        modelNumber: normalizedInput.modelNumber,
+        purchasedAt: normalizedInput.purchasedAt,
+        purchaseStore: normalizedInput.purchaseStore,
+        warrantyText: '365일 남음',
+        returnText: '14일 남음',
+        receiptStatus: normalizedInput.receiptStatus,
+        status: RightsStatus.detected,
+        statusSummary: '등록이 완료되어 리콜과 보증 정보를 확인하고 있어요.',
+        recommendedAction: '권리 상태 확인',
+        recallAlertEnabled: normalizedInput.recallAlert,
+        warrantyAlertEnabled: normalizedInput.warrantyAlert,
+        returnAlertEnabled: normalizedInput.returnAlert,
+      );
+
+      final savedProduct = _ref
+          .read(productCatalogProvider.notifier)
+          .addProduct(product);
+
+      _ref
+          .read(productActivityCommandProvider)
+          .record(
+            ProductActivity(
+              id: '${savedProduct.id}-registered',
+              productId: savedProduct.id,
+              occurredAtLabel: '방금',
+              title: '제품이 등록됐어요',
+              description:
+                  '테비오가 권리 상태를 확인하기 시작했어요. ${normalizedInput.alertSummary}',
+            ),
+          );
+
+      return TevioSuccess(savedProduct);
+    } on Exception {
+      return const TevioFailureResult(
+        TevioFailure(message: '제품을 등록하지 못했어요. 정보를 확인한 뒤 다시 시도해 주세요.'),
+      );
+    }
+  }
+}
+
+class ProductRegistrationInput {
+  const ProductRegistrationInput({
+    required this.name,
+    required this.brand,
+    required this.modelNumber,
+    required this.purchasedAt,
+    required this.purchaseStore,
+    this.receiptStatus = '보관됨',
+    this.recallAlert = true,
+    this.warrantyAlert = true,
+    this.returnAlert = true,
+  });
+
+  final String name;
+  final String brand;
+  final String modelNumber;
+  final String purchasedAt;
+  final String purchaseStore;
+  final String receiptStatus;
+  final bool recallAlert;
+  final bool warrantyAlert;
+  final bool returnAlert;
+
+  bool get isValid {
+    return name.isNotEmpty && brand.isNotEmpty && modelNumber.isNotEmpty;
+  }
+
+  String get productId {
+    final rawId = '${brand}_${name}_$modelNumber'
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9가-힣]+'), '-')
+        .replaceAll(RegExp(r'-+'), '-')
+        .replaceAll(RegExp(r'^-|-$'), '');
+
+    if (rawId.isEmpty) {
+      return 'registered-product';
+    }
+
+    return '$rawId-registered';
+  }
+
+  String get alertSummary {
+    final enabledAlerts = [
+      if (recallAlert) '리콜',
+      if (warrantyAlert) '보증',
+      if (returnAlert) '반품·교환',
+    ];
+
+    if (enabledAlerts.isEmpty) {
+      return '등록한 알림은 없어요.';
+    }
+
+    return '${enabledAlerts.join(', ')} 알림을 설정했어요.';
+  }
+
+  ProductRegistrationInput normalized() {
+    return ProductRegistrationInput(
+      name: _valueOrDefault(name, '제품'),
+      brand: _valueOrDefault(brand, '제조사 미상'),
+      modelNumber: modelNumber.trim(),
+      purchasedAt: _valueOrDefault(purchasedAt, '구매일 미상'),
+      purchaseStore: _valueOrDefault(purchaseStore, '구매처 미상'),
+      receiptStatus: _valueOrDefault(receiptStatus, '보관됨'),
+      recallAlert: recallAlert,
+      warrantyAlert: warrantyAlert,
+      returnAlert: returnAlert,
+    );
+  }
+
+  static String _valueOrDefault(String value, String defaultValue) {
+    final trimmed = value.trim();
+
+    if (trimmed.isEmpty) {
+      return defaultValue;
+    }
+
+    return trimmed;
   }
 }

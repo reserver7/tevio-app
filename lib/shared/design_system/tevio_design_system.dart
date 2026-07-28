@@ -15,6 +15,7 @@ export 'components/tevio_status_badge.dart';
 export 'components/tevio_step_indicator.dart';
 export 'models/rights_status.dart';
 export 'tokens/tevio_colors.dart';
+export 'tokens/tevio_motion.dart';
 export 'tokens/tevio_radius.dart';
 export 'tokens/tevio_shadows.dart';
 export 'tokens/tevio_spacing.dart';

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/rights_status.dart';
 import '../tokens/tevio_colors.dart';
-import '../tokens/tevio_radius.dart';
 import '../tokens/tevio_spacing.dart';
 import 'tevio_card.dart';
 
@@ -15,7 +14,6 @@ class TevioNotificationCard extends StatelessWidget {
     required this.title,
     required this.description,
     required this.receivedAt,
-    required this.actionLabel,
     this.isRead = false,
     this.onTap,
   });
@@ -26,7 +24,6 @@ class TevioNotificationCard extends StatelessWidget {
   final String title;
   final String description;
   final String receivedAt;
-  final String actionLabel;
   final bool isRead;
   final VoidCallback? onTap;
 
@@ -36,13 +33,16 @@ class TevioNotificationCard extends StatelessWidget {
 
     return TevioCard(
       onTap: onTap,
+      padding: const EdgeInsets.all(TevioSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              _NotificationIcon(status: status),
-              const SizedBox(width: TevioSpacing.xs),
+              if (!isRead) ...[
+                const _UnreadDot(),
+                const SizedBox(width: TevioSpacing.xs),
+              ],
               Expanded(
                 child: Text(
                   title,
@@ -64,8 +64,19 @@ class TevioNotificationCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: TevioSpacing.xs),
-          Text(
-            '$typeLabel · $productName',
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: typeLabel,
+                  style: textTheme.labelLarge?.copyWith(
+                    color: status.foreground,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                TextSpan(text: ' · $productName'),
+              ],
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: textTheme.labelLarge?.copyWith(
@@ -83,60 +94,7 @@ class TevioNotificationCard extends StatelessWidget {
                   : TevioColors.textSecondary,
             ),
           ),
-          const SizedBox(height: TevioSpacing.sm),
-          Row(
-            children: [
-              if (!isRead) ...[
-                const _UnreadDot(),
-                const SizedBox(width: TevioSpacing.xs),
-              ],
-              Expanded(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        actionLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.labelLarge?.copyWith(
-                          color: TevioColors.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: TevioSpacing.xxs),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: TevioColors.primary,
-                      size: 18,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _NotificationIcon extends StatelessWidget {
-  const _NotificationIcon({required this.status});
-
-  final RightsStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: status.background,
-        borderRadius: TevioRadius.smallBorder,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(TevioSpacing.xs),
-        child: Icon(status.icon, color: status.foreground, size: 16),
       ),
     );
   }

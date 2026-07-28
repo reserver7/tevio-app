@@ -54,7 +54,8 @@ class _HomeContent extends StatelessWidget {
       key: const PageStorageKey('home-scroll'),
       padding: const EdgeInsets.all(TevioSpacing.lg),
       children: [
-        _TodayStatusCard(snapshot: snapshot),
+        if (snapshot.presentationType != _HomePresentationType.empty)
+          _TodayStatusCard(snapshot: snapshot),
         if (snapshot.nextActions.isNotEmpty) ...[
           const SizedBox(height: TevioSpacing.xl),
           TevioSectionHeader(title: snapshot.secondarySectionTitle),
@@ -72,7 +73,11 @@ class _HomeContent extends StatelessWidget {
         ],
         if (snapshot.productSummary != null) ...[
           const SizedBox(height: TevioSpacing.xl),
-          const TevioSectionHeader(title: '내 제품 요약'),
+          TevioSectionHeader(
+            title: '내 제품 요약',
+            actionLabel: '전체 보기',
+            onActionPressed: () => context.go('/products'),
+          ),
           const SizedBox(height: TevioSpacing.sm),
           _ProductSummary(summary: snapshot.productSummary!),
         ],
@@ -414,8 +419,8 @@ class _HomeSnapshot {
         title: '첫 제품을 등록해 보세요',
         description: '제품과 구매 정보를 등록하면 테비오가 리콜, 보증, A/S 정보를 계속 확인해 드려요.',
         contextualCta: _HomeCta(
-          title: '구매 이후 권리 확인을 시작하세요',
-          description: '영수증이나 모델번호만 있어도 제품 등록을 시작할 수 있어요.',
+          title: '첫 제품을 등록해 보세요',
+          description: '영수증이나 모델번호만 있어도 구매 이후 권리 확인을 시작할 수 있어요.',
           label: '제품 등록하기',
           icon: Icons.add_box_outlined,
           route: '/register',
@@ -458,6 +463,27 @@ class _HomeSnapshot {
           ? '새로운 리콜 대상은 없어요.'
           : '${attentionProducts.first.name}부터 확인해 주세요.',
     );
+
+    if (primaryProduct == null && processingProducts.isNotEmpty) {
+      final processingProduct = processingProducts.first;
+
+      return _HomeSnapshot(
+        presentationType: _HomePresentationType.processing,
+        status: RightsStatus.processing,
+        eyebrow: '${processingProduct.brand} ${processingProduct.name}',
+        title: '요청한 처리가 진행 중이에요',
+        description: processingProduct.statusSummary,
+        summary: processingProduct.recommendedAction,
+        recentChecks: [
+          _RecentCheck(
+            status: RightsStatus.processing,
+            title: '${processingProduct.name} 처리 상태를 확인했어요',
+            description: processingProduct.statusSummary,
+            checkedAt: '오늘 오후 2:30',
+          ),
+        ],
+      );
+    }
 
     if (primaryProduct == null) {
       return _HomeSnapshot(
@@ -504,7 +530,6 @@ class _HomeSnapshot {
       processing: processingProducts.isEmpty
           ? null
           : _ProcessingItem.fromProduct(processingProducts.first),
-      productSummary: productSummary,
       recentChecks: [
         _RecentCheck(
           status: RightsStatus.safe,
