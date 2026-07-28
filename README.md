@@ -24,6 +24,7 @@
 - 제품 목록과 제품별 활동 기록을 Riverpod 상태로 관리
 - 알림 목록의 읽음, 삭제, 복원, 전체 읽음 처리
 - 제품 권리 액션 완료 시 제품 상태, 최근 기록, 관련 알림 상태 동기화
+- API 전환을 고려한 DTO, mapper, repository 경계 구성
 - iOS 뒤로가기 버튼과 스와이프 내비게이션 흐름 정리
 - lint, 아키텍처 테스트, 위젯 테스트 구성
 
@@ -103,9 +104,9 @@ lib/
   app/                     앱 부트스트랩, 라우터, 테마
   features/
     home/                  홈
-    notifications/         알림 도메인, 저장소, 화면 상태
+    notifications/         알림 DTO, mapper, 저장소, 화면 상태
     onboarding/            온보딩
-    products/              제품 도메인, 저장소, 등록/상세/목록
+    products/              제품 DTO, mapper, 저장소, 등록/상세/목록
     settings/              마이
   shared/
     design_system/         디자인 토큰과 공통 컴포넌트

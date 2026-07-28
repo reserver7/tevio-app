@@ -18,19 +18,12 @@ class TevioStatusBadge extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(status.icon, color: status.foreground, size: 14),
-            const SizedBox(width: 4),
-            Text(
-              label ?? status.label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: status.foreground,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
+        child: Text(
+          label ?? status.label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: status.foreground,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );

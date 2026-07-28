@@ -65,27 +65,27 @@ class ProductDetailPage extends ConsumerWidget {
           padding: const EdgeInsets.all(TevioSpacing.lg),
           children: [
             _ProductHeader(product: product),
-            const SizedBox(height: TevioSpacing.lg),
-            const TevioSectionHeader(title: '지금 해야 할 일'),
-            const SizedBox(height: TevioSpacing.sm),
-            TevioRightsCard(
+            const SizedBox(height: TevioSpacing.xl),
+            _PrimaryActionPanel(
               status: product.status,
-              productName: '${product.brand} ${product.name}',
               title: detail!.primaryTitle,
               description: product.statusSummary,
-              dueText: detail.primaryDueText,
               actionLabel: product.recommendedAction,
-              onPressed: () => _showRightsActionSheet(
+              onTap: () => _showRightsActionSheet(
                 context,
                 ref,
                 product,
                 detail.primaryAction,
               ),
             ),
-            const SizedBox(height: TevioSpacing.lg),
+            const SizedBox(height: TevioSpacing.xl),
             const TevioSectionHeader(title: '권리 상태'),
             const SizedBox(height: TevioSpacing.sm),
             TevioCard(
+              padding: const EdgeInsets.symmetric(
+                horizontal: TevioSpacing.md,
+                vertical: TevioSpacing.xs,
+              ),
               child: Column(
                 children: [
                   for (final item in detail.rights) ...[
@@ -104,7 +104,7 @@ class ProductDetailPage extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: TevioSpacing.lg),
+            const SizedBox(height: TevioSpacing.xl),
             TevioSectionHeader(
               title: '제품 정보',
               actionLabel: '수정',
@@ -113,6 +113,7 @@ class ProductDetailPage extends ConsumerWidget {
             ),
             const SizedBox(height: TevioSpacing.sm),
             TevioCard(
+              padding: const EdgeInsets.all(TevioSpacing.md),
               child: Column(
                 children: [
                   TevioInfoRow(label: '구매일', value: product.purchasedAt),
@@ -120,22 +121,30 @@ class ProductDetailPage extends ConsumerWidget {
                   TevioInfoRow(label: '구매처', value: product.purchaseStore),
                   const Divider(height: TevioSpacing.xl),
                   TevioInfoRow(label: '영수증', value: product.receiptStatus),
-                  const Divider(height: TevioSpacing.xl),
-                  TevioInfoRow(label: '반품·교환', value: product.returnText),
                 ],
               ),
             ),
-            const SizedBox(height: TevioSpacing.lg),
+            const SizedBox(height: TevioSpacing.xl),
+            const TevioSectionHeader(title: '이 제품 알림'),
+            const SizedBox(height: TevioSpacing.sm),
+            _ProductAlertSettings(product: product, ref: ref),
+            const SizedBox(height: TevioSpacing.xl),
             const TevioSectionHeader(title: '최근 기록'),
             const SizedBox(height: TevioSpacing.sm),
             TevioCard(
+              padding: const EdgeInsets.all(TevioSpacing.md),
               child: Column(
                 children: [
-                  for (final event in detail.events) ...[
-                    _TimelineRow(event: event),
-                    if (event != detail.events.last)
-                      const Divider(height: TevioSpacing.xl),
-                  ],
+                  for (
+                    var index = 0;
+                    index < detail.events.take(3).length;
+                    index++
+                  )
+                    _TimelineRow(
+                      event: detail.events[index],
+                      isFirst: index == 0,
+                      isLast: index == detail.events.take(3).length - 1,
+                    ),
                 ],
               ),
             ),
@@ -172,32 +181,42 @@ class ProductDetailPage extends ConsumerWidget {
       return;
     }
 
-    final savedProduct = ref
+    final result = ref
         .read(productUpdateCommandProvider)
         .save(action.completedProduct(product));
-    ref
-        .read(productActivityCommandProvider)
-        .record(
-          ProductActivity(
-            id: '${savedProduct.id}-${action.type.name}-${DateTime.now().millisecondsSinceEpoch}',
-            productId: savedProduct.id,
-            occurredAtLabel: '방금',
-            title: action.resultTitle,
-            description: action.resultDescription,
-          ),
-        );
-    ref
-        .read(notificationCommandProvider)
-        .resolveProductNotification(
-          productId: savedProduct.id,
-          category: action.notificationCategory,
-          title: action.notificationResultTitle,
-          description: action.notificationResultDescription,
-        );
 
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(action.resultToast)));
+    result.when(
+      success: (savedProduct) {
+        ref
+            .read(productActivityCommandProvider)
+            .record(
+              ProductActivity(
+                id: '${savedProduct.id}-${action.type.name}-${DateTime.now().millisecondsSinceEpoch}',
+                productId: savedProduct.id,
+                occurredAtLabel: '방금',
+                title: action.resultTitle,
+                description: action.resultDescription,
+              ),
+            );
+        ref
+            .read(notificationCommandProvider)
+            .resolveProductNotification(
+              productId: savedProduct.id,
+              category: action.notificationCategory,
+              title: action.notificationResultTitle,
+              description: action.notificationResultDescription,
+            );
+
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(content: Text(action.resultToast)));
+      },
+      failure: (failure) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(content: Text(failure.message)));
+      },
+    );
   }
 
   Future<void> _showProductEditSheet(
@@ -217,26 +236,34 @@ class ProductDetailPage extends ConsumerWidget {
       return;
     }
 
-    final savedProduct = ref
-        .read(productUpdateCommandProvider)
-        .save(updatedProduct);
-    ref
-        .read(productActivityCommandProvider)
-        .record(
-          ProductActivity(
-            id: '${savedProduct.id}-updated-${DateTime.now().millisecondsSinceEpoch}',
-            productId: savedProduct.id,
-            occurredAtLabel: '방금',
-            title: '제품 정보가 수정됐어요',
-            description: '변경된 정보로 권리 상태를 다시 확인합니다.',
-          ),
-        );
+    final result = ref.read(productUpdateCommandProvider).save(updatedProduct);
 
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        const SnackBar(content: Text('제품 정보를 저장했어요. 테비오가 다시 확인합니다.')),
-      );
+    result.when(
+      success: (savedProduct) {
+        ref
+            .read(productActivityCommandProvider)
+            .record(
+              ProductActivity(
+                id: '${savedProduct.id}-updated-${DateTime.now().millisecondsSinceEpoch}',
+                productId: savedProduct.id,
+                occurredAtLabel: '방금',
+                title: '제품 정보가 수정됐어요',
+                description: '변경된 정보로 권리 상태를 다시 확인합니다.',
+              ),
+            );
+
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(content: Text('제품 정보를 저장했어요. 테비오가 다시 확인합니다.')),
+          );
+      },
+      failure: (failure) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(content: Text(failure.message)));
+      },
+    );
   }
 }
 
@@ -247,24 +274,195 @@ class _ProductHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(product.name, style: TevioTypography.titleLarge),
+              const SizedBox(height: TevioSpacing.xxs),
+              Text(
+                '${product.brand} · ${product.modelNumber}',
+                style: TevioTypography.bodyMedium.copyWith(
+                  color: TevioColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: TevioSpacing.md),
+        TevioStatusBadge(status: product.status),
+      ],
+    );
+  }
+}
+
+class _PrimaryActionPanel extends StatelessWidget {
+  const _PrimaryActionPanel({
+    required this.status,
+    required this.title,
+    required this.description,
+    required this.actionLabel,
+    required this.onTap,
+  });
+
+  final RightsStatus status;
+  final String title;
+  final String description;
+  final String actionLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return TevioCard(
+      padding: const EdgeInsets.all(TevioSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TevioStatusBadge(status: product.status),
-          const SizedBox(height: TevioSpacing.md),
-          Text(product.name, style: TevioTypography.titleLarge),
-          const SizedBox(height: TevioSpacing.xs),
-          Text(
-            '${product.brand} · ${product.modelNumber}',
-            style: TevioTypography.bodyMedium,
+          Row(
+            children: [
+              _ActionIndicator(status: status),
+              const SizedBox(width: TevioSpacing.xs),
+              Text(
+                _actionEyebrow,
+                style: textTheme.labelLarge?.copyWith(
+                  color: status.foreground,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: TevioSpacing.md),
-          Text(
-            '테비오가 이 제품의 리콜, 보증, 반품·교환 가능 기간을 확인하고 있어요.',
-            style: Theme.of(context).textTheme.bodyMedium,
+          Text(title, style: textTheme.titleLarge),
+          const SizedBox(height: TevioSpacing.xs),
+          Text(description, style: textTheme.bodyMedium),
+          const SizedBox(height: TevioSpacing.lg),
+          TevioButton(label: actionLabel, onPressed: onTap),
+        ],
+      ),
+    );
+  }
+
+  String get _actionEyebrow {
+    return switch (status) {
+      RightsStatus.urgent => '지금 확인해 주세요',
+      RightsStatus.actionRequired => '확인이 필요해요',
+      RightsStatus.detected => '확인하고 있어요',
+      RightsStatus.processing => '처리 중이에요',
+      RightsStatus.safe || RightsStatus.completed => '현재 상태',
+      RightsStatus.unknown => '정보가 필요해요',
+    };
+  }
+}
+
+class _ProductAlertSettings extends StatelessWidget {
+  const _ProductAlertSettings({required this.product, required this.ref});
+
+  final ProductSummary product;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    return TevioCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          _ProductAlertToggle(
+            title: '리콜 및 안전 문제',
+            value: product.recallAlertEnabled,
+            onChanged: (value) =>
+                _save(context, product.copyWith(recallAlertEnabled: value)),
+            isFirst: true,
+          ),
+          _ProductAlertToggle(
+            title: '보증 만료',
+            value: product.warrantyAlertEnabled,
+            onChanged: (value) =>
+                _save(context, product.copyWith(warrantyAlertEnabled: value)),
+          ),
+          _ProductAlertToggle(
+            title: '반품·교환 기간',
+            value: product.returnAlertEnabled,
+            onChanged: (value) =>
+                _save(context, product.copyWith(returnAlertEnabled: value)),
+            isLast: true,
           ),
         ],
+      ),
+    );
+  }
+
+  void _save(BuildContext context, ProductSummary updatedProduct) {
+    final result = ref.read(productUpdateCommandProvider).save(updatedProduct);
+
+    result.when(
+      success: (_) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(const SnackBar(content: Text('이 제품 알림 설정을 저장했어요.')));
+      },
+      failure: (failure) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(content: Text(failure.message)));
+      },
+    );
+  }
+}
+
+class _ProductAlertToggle extends StatelessWidget {
+  const _ProductAlertToggle({
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.isFirst = false,
+    this.isLast = false,
+  });
+
+  final String title;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final bool isFirst;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (!isFirst) const Divider(height: 1),
+        SwitchListTile.adaptive(
+          value: value,
+          onChanged: onChanged,
+          title: Text(title),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: TevioSpacing.md,
+            vertical: TevioSpacing.xs,
+          ),
+        ),
+        if (isLast) const SizedBox(height: TevioSpacing.xs),
+      ],
+    );
+  }
+}
+
+class _ActionIndicator extends StatelessWidget {
+  const _ActionIndicator({required this.status});
+
+  final RightsStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: TevioSpacing.sm,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: status.foreground,
+          shape: BoxShape.circle,
+        ),
       ),
     );
   }
@@ -286,21 +484,10 @@ class _RightsStatusRow extends StatelessWidget {
         onTap: onTap,
         borderRadius: TevioRadius.mediumBorder,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: TevioSpacing.xs),
+          padding: const EdgeInsets.symmetric(vertical: TevioSpacing.md),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: item.status.background,
-                  borderRadius: TevioRadius.mediumBorder,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(TevioSpacing.sm),
-                  child: Icon(item.icon, color: item.status.foreground),
-                ),
-              ),
-              const SizedBox(width: TevioSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,27 +497,49 @@ class _RightsStatusRow extends StatelessWidget {
                         Expanded(
                           child: Text(item.title, style: textTheme.titleMedium),
                         ),
-                        Text(
-                          item.value,
-                          style: textTheme.labelLarge?.copyWith(
-                            color: item.status.foreground,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(width: TevioSpacing.xxs),
-                        const Icon(
-                          Icons.chevron_right,
-                          color: TevioColors.textTertiary,
-                          size: 18,
-                        ),
+                        _RightsValuePill(item: item),
                       ],
                     ),
                     const SizedBox(height: TevioSpacing.xxs),
-                    Text(item.description, style: textTheme.bodyMedium),
+                    Text(
+                      item.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMedium,
+                    ),
                   ],
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RightsValuePill extends StatelessWidget {
+  const _RightsValuePill({required this.item});
+
+  final _RightsDetailItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: item.status.background,
+        borderRadius: TevioRadius.fullBorder,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: TevioSpacing.sm,
+          vertical: TevioSpacing.xxs,
+        ),
+        child: Text(
+          item.value,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: item.status.foreground,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),
@@ -818,38 +1027,285 @@ enum _RightsActionType {
 }
 
 class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({required this.event});
+  const _TimelineRow({
+    required this.event,
+    required this.isFirst,
+    required this.isLast,
+  });
 
   final ProductActivity event;
+  final bool isFirst;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 72,
-          child: Text(
-            event.occurredAtLabel,
-            style: Theme.of(context).textTheme.bodyMedium,
+          width: 28,
+          child: Column(
+            children: [
+              if (!isFirst)
+                const SizedBox(
+                  height: TevioSpacing.sm,
+                  child: VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: TevioColors.divider,
+                  ),
+                ),
+              _TimelinePulseDot(
+                status: event.status,
+                isActive: event.status.isMotionImportant,
+                isEmphasized: isFirst,
+              ),
+              if (!isLast)
+                const SizedBox(
+                  height: 58,
+                  child: VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: TevioColors.divider,
+                  ),
+                ),
+            ],
           ),
         ),
-        const SizedBox(width: TevioSpacing.md),
+        const SizedBox(width: TevioSpacing.sm),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(event.title, style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: TevioSpacing.xxs),
-              Text(
-                event.description,
-                style: Theme.of(context).textTheme.bodyMedium,
+          child: Padding(
+            padding: const EdgeInsets.all(TevioSpacing.sm),
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : TevioSpacing.sm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(event.title, style: textTheme.titleSmall),
+                      ),
+                      const SizedBox(width: TevioSpacing.sm),
+                      _TimelineTimePill(label: event.occurredAtLabel),
+                    ],
+                  ),
+                  const SizedBox(height: TevioSpacing.xxs),
+                  Text(event.description, style: textTheme.bodyMedium),
+                  if (isFirst) ...[
+                    const SizedBox(height: TevioSpacing.xs),
+                    Text(
+                      event.status.label,
+                      style: textTheme.labelLarge?.copyWith(
+                        color: event.status.foreground,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ],
     );
+  }
+}
+
+class _TimelinePulseDot extends StatefulWidget {
+  const _TimelinePulseDot({
+    required this.status,
+    required this.isActive,
+    required this.isEmphasized,
+  });
+
+  final RightsStatus status;
+  final bool isActive;
+  final bool isEmphasized;
+
+  @override
+  State<_TimelinePulseDot> createState() => _TimelinePulseDotState();
+}
+
+class _TimelinePulseDotState extends State<_TimelinePulseDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: TevioMotion.pulse);
+    _scale = Tween<double>(begin: 1, end: widget.status.pulseScale).animate(
+      CurvedAnimation(parent: _controller, curve: TevioMotion.standardCurve),
+    );
+    _opacity = Tween<double>(begin: widget.status.pulseOpacity, end: 0).animate(
+      CurvedAnimation(parent: _controller, curve: TevioMotion.standardCurve),
+    );
+    _syncAnimation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _TimelinePulseDot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive != widget.isActive ||
+        oldWidget.status != widget.status) {
+      _syncAnimation();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _syncAnimation() {
+    if (widget.isActive) {
+      _controller.repeat();
+      return;
+    }
+
+    _controller.stop();
+    _controller.value = 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dotSize = widget.isEmphasized ? 14.0 : 8.0;
+    final dotColor = widget.isEmphasized || widget.status.isMotionImportant
+        ? widget.status.foreground
+        : TevioColors.textTertiary;
+
+    return SizedBox.square(
+      dimension: 28,
+      child: Center(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                if (widget.isActive)
+                  Transform.scale(
+                    scale: _scale.value,
+                    child: Opacity(
+                      opacity: _opacity.value,
+                      child: SizedBox.square(
+                        dimension: dotSize,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: dotColor,
+                            borderRadius: TevioRadius.fullBorder,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                child!,
+              ],
+            );
+          },
+          child: SizedBox.square(
+            dimension: dotSize,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: dotColor,
+                borderRadius: TevioRadius.fullBorder,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineTimePill extends StatelessWidget {
+  const _TimelineTimePill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: TevioColors.divider,
+        borderRadius: TevioRadius.fullBorder,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: TevioSpacing.sm,
+          vertical: TevioSpacing.xxs,
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: TevioColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+extension _ProductActivityStatus on ProductActivity {
+  RightsStatus get status {
+    if (title.contains('리콜')) {
+      return RightsStatus.urgent;
+    }
+
+    if (title.contains('보증') || title.contains('수정') || title.contains('요청')) {
+      return RightsStatus.processing;
+    }
+
+    if (title.contains('등록') || title.contains('구매')) {
+      return RightsStatus.completed;
+    }
+
+    return RightsStatus.detected;
+  }
+}
+
+extension _RightsStatusMotion on RightsStatus {
+  bool get isMotionImportant {
+    return switch (this) {
+      RightsStatus.urgent || RightsStatus.processing => true,
+      RightsStatus.safe ||
+      RightsStatus.detected ||
+      RightsStatus.actionRequired ||
+      RightsStatus.completed ||
+      RightsStatus.unknown => false,
+    };
+  }
+
+  double get pulseScale {
+    return switch (this) {
+      RightsStatus.urgent => 2.4,
+      RightsStatus.processing => 2.0,
+      RightsStatus.safe ||
+      RightsStatus.detected ||
+      RightsStatus.actionRequired ||
+      RightsStatus.completed ||
+      RightsStatus.unknown => 1,
+    };
+  }
+
+  double get pulseOpacity {
+    return switch (this) {
+      RightsStatus.urgent => 0.24,
+      RightsStatus.processing => 0.18,
+      RightsStatus.safe ||
+      RightsStatus.detected ||
+      RightsStatus.actionRequired ||
+      RightsStatus.completed ||
+      RightsStatus.unknown => 0,
+    };
   }
 }
 

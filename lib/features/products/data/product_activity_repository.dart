@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/models/product_activity.dart';
+import 'mappers/product_mapper.dart';
 
 abstract interface class ProductActivityRepository {
   List<ProductActivity> watchActivities();
@@ -27,10 +28,12 @@ class ProductActivityLog extends Notifier<List<ProductActivity>>
 
   @override
   void record(ProductActivity activity) {
+    final dto = activity.toDto();
+
     state = [
-      activity,
+      dto.toDomain(),
       for (final item in state)
-        if (item.id != activity.id) item,
+        if (item.id != dto.id) item,
     ];
   }
 }

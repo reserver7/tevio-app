@@ -16,8 +16,8 @@ extension RightsStatusX on RightsStatus {
   String get label {
     return switch (this) {
       RightsStatus.safe => '정상',
-      RightsStatus.detected => '감지',
-      RightsStatus.actionRequired => '확인 필요',
+      RightsStatus.detected => '확인 중',
+      RightsStatus.actionRequired => '주의',
       RightsStatus.urgent => '긴급',
       RightsStatus.processing => '처리 중',
       RightsStatus.completed => '완료',
@@ -28,8 +28,9 @@ extension RightsStatusX on RightsStatus {
   Color get foreground {
     return switch (this) {
       RightsStatus.safe || RightsStatus.completed => TevioColors.mint,
-      RightsStatus.detected || RightsStatus.processing => TevioColors.primary,
-      RightsStatus.actionRequired => TevioColors.warning,
+      RightsStatus.detected ||
+      RightsStatus.actionRequired ||
+      RightsStatus.processing => TevioColors.primary,
       RightsStatus.urgent => TevioColors.danger,
       RightsStatus.unknown => TevioColors.textSecondary,
     };
@@ -40,8 +41,8 @@ extension RightsStatusX on RightsStatus {
       RightsStatus.safe ||
       RightsStatus.completed => TevioColors.successBackground,
       RightsStatus.detected ||
+      RightsStatus.actionRequired ||
       RightsStatus.processing => TevioColors.primaryBackground,
-      RightsStatus.actionRequired => TevioColors.warningBackground,
       RightsStatus.urgent => TevioColors.dangerBackground,
       RightsStatus.unknown => TevioColors.divider,
     };

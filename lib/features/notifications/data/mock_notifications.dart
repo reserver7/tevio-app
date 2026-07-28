@@ -1,11 +1,10 @@
-import '../../../shared/design_system/tevio_design_system.dart';
-import '../domain/models/tevio_notification.dart';
+import 'dtos/notification_dto.dart';
 
-const mockNotifications = [
-  TevioNotification(
+const mockNotificationDtos = [
+  NotificationDto(
     id: 'recall-vacuum',
-    category: TevioNotificationCategory.immediate,
-    status: RightsStatus.urgent,
+    category: 'immediate',
+    status: 'urgent',
     productName: '무선청소기',
     typeLabel: '안전 알림',
     title: '리콜 후보가 발견됐어요',
@@ -15,10 +14,10 @@ const mockNotifications = [
     actionLabel: '확인하기',
     route: '/products/vacuum-xyz-vc-2401',
   ),
-  TevioNotification(
+  NotificationDto(
     id: 'warranty-notebook',
-    category: TevioNotificationCategory.dueSoon,
-    status: RightsStatus.actionRequired,
+    category: 'dueSoon',
+    status: 'actionRequired',
     productName: '노트북',
     typeLabel: '기한 알림',
     title: '무상보증 종료 28일 전',
@@ -29,10 +28,10 @@ const mockNotifications = [
     route: '/products/notebook-sample-nb-16p',
     isRead: true,
   ),
-  TevioNotification(
+  NotificationDto(
     id: 'receipt-air-purifier',
-    category: TevioNotificationCategory.infoRequired,
-    status: RightsStatus.detected,
+    category: 'infoRequired',
+    status: 'detected',
     productName: '공기청정기',
     typeLabel: '정보 요청',
     title: '구매처 정보가 비어 있어요',
@@ -42,10 +41,10 @@ const mockNotifications = [
     actionLabel: '정보 보완',
     route: '/products/air-purifier-abc-123',
   ),
-  TevioNotification(
+  NotificationDto(
     id: 'service-case-update',
-    category: TevioNotificationCategory.processing,
-    status: RightsStatus.processing,
+    category: 'processing',
+    status: 'processing',
     productName: '무선청소기',
     typeLabel: '처리 업데이트',
     title: 'A/S 접수 상태가 변경됐어요',
@@ -56,10 +55,10 @@ const mockNotifications = [
     route: '/products/vacuum-xyz-vc-2401',
     isRead: true,
   ),
-  TevioNotification(
+  NotificationDto(
     id: 'welcome-guide',
-    category: TevioNotificationCategory.general,
-    status: RightsStatus.completed,
+    category: 'general',
+    status: 'completed',
     productName: '테비오',
     typeLabel: '서비스 안내',
     title: '제품을 등록하면 알림을 받을 수 있어요',

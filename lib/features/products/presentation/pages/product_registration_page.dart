@@ -45,8 +45,35 @@ class _ProductRegistrationPageState
   bool _returnAlert = true;
   _RegistrationFailure? _failure;
   bool _hasShownMockFailure = false;
+  bool _showFieldErrors = false;
   String? _registeredProductId;
+  String? _registeredProductName;
   int? _activeSession;
+  late final TextEditingController _nameController;
+  late final TextEditingController _brandController;
+  late final TextEditingController _modelNumberController;
+  late final TextEditingController _purchasedAtController;
+  late final TextEditingController _purchaseStoreController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: '공기청정기');
+    _brandController = TextEditingController(text: 'ABC');
+    _modelNumberController = TextEditingController(text: 'ABC-123');
+    _purchasedAtController = TextEditingController(text: '2026.07.23');
+    _purchaseStoreController = TextEditingController(text: '브랜드 공식몰');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _brandController.dispose();
+    _modelNumberController.dispose();
+    _purchasedAtController.dispose();
+    _purchaseStoreController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,8 +83,6 @@ class _ProductRegistrationPageState
       _resetLocalState();
     }
 
-    final currentStep = _RegistrationStep.values.indexOf(_step);
-
     return Scaffold(
       key: ValueKey('product-registration-$session'),
       appBar: const TevioAppBar(title: '제품 등록'),
@@ -65,23 +90,30 @@ class _ProductRegistrationPageState
         child: ListView(
           padding: const EdgeInsets.all(TevioSpacing.lg),
           children: [
-            Text('테비오에 내 제품을 등록하세요', style: TevioTypography.titleLarge),
-            const SizedBox(height: TevioSpacing.xs),
-            Text(
-              '영수증과 제품 정보를 모아두면 리콜, 보증, A/S 시점을 계속 확인할 수 있어요.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: TevioSpacing.lg),
-            TevioStepIndicator(
-              currentStep: currentStep,
-              totalSteps: _RegistrationStep.values.length,
-            ),
-            const SizedBox(height: TevioSpacing.xl),
+            if (_progressStep != null) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(_stepTitle, style: TevioTypography.titleLarge),
+                  ),
+                  Text(
+                    '${_progressStep! + 1}/4',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: TevioColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: TevioSpacing.md),
+              TevioStepIndicator(currentStep: _progressStep!, totalSteps: 4),
+              const SizedBox(height: TevioSpacing.xl),
+            ],
             _buildStepContent(),
           ],
         ),
       ),
-      bottomNavigationBar: _failure == null
+      bottomNavigationBar:
+          _failure == null && _step != _RegistrationStep.registering
           ? SafeArea(
               minimum: const EdgeInsets.all(TevioSpacing.lg),
               child: Row(
@@ -114,6 +146,28 @@ class _ProductRegistrationPageState
     );
   }
 
+  int? get _progressStep {
+    return switch (_step) {
+      _RegistrationStep.method || _RegistrationStep.complete => null,
+      _RegistrationStep.analyzing || _RegistrationStep.productInfo => 0,
+      _RegistrationStep.candidate => 1,
+      _RegistrationStep.notifications => 2,
+      _RegistrationStep.registering => 3,
+    };
+  }
+
+  String get _stepTitle {
+    return switch (_step) {
+      _RegistrationStep.method => '등록 방식',
+      _RegistrationStep.analyzing => '구매 정보 가져오기',
+      _RegistrationStep.productInfo => '제품 정보 확인',
+      _RegistrationStep.candidate => '제품 후보 확인',
+      _RegistrationStep.notifications => '알림 선택',
+      _RegistrationStep.registering => '제품 등록',
+      _RegistrationStep.complete => '등록 완료',
+    };
+  }
+
   Widget _buildStepContent() {
     return switch (_step) {
       _RegistrationStep.method => _MethodStep(
@@ -134,8 +188,17 @@ class _ProductRegistrationPageState
           });
         },
       ),
-      _RegistrationStep.productInfo => _ProductInfoStep(method: _method),
-      _RegistrationStep.candidate => const _CandidateStep(),
+      _RegistrationStep.productInfo => _ProductInfoStep(
+        method: _method,
+        nameController: _nameController,
+        brandController: _brandController,
+        modelNumberController: _modelNumberController,
+        purchasedAtController: _purchasedAtController,
+        purchaseStoreController: _purchaseStoreController,
+        showErrors: _showFieldErrors,
+        onChanged: _handleProductInfoChanged,
+      ),
+      _RegistrationStep.candidate => _CandidateStep(input: _registrationInput),
       _RegistrationStep.notifications => _NotificationOptionsStep(
         recallAlert: _recallAlert,
         warrantyAlert: _warrantyAlert,
@@ -144,9 +207,11 @@ class _ProductRegistrationPageState
         onWarrantyChanged: (value) => setState(() => _warrantyAlert = value),
         onReturnChanged: (value) => setState(() => _returnAlert = value),
       ),
-      _RegistrationStep.registering => const _RegisteringStep(),
-      _RegistrationStep.complete => const TevioCompletionView(
-        title: '제품 등록이 완료됐어요.',
+      _RegistrationStep.registering => _RegisteringStep(
+        input: _registrationInput.normalized(),
+      ),
+      _RegistrationStep.complete => TevioCompletionView(
+        title: '${_registeredProductName ?? '제품'} 등록이 완료됐어요.',
         description: '이제 테비오가 이 제품의 권리를 계속 확인할게요.',
       ),
     };
@@ -159,7 +224,7 @@ class _ProductRegistrationPageState
       _RegistrationStep.productInfo => true,
       _RegistrationStep.candidate => true,
       _RegistrationStep.notifications => true,
-      _RegistrationStep.registering => true,
+      _RegistrationStep.registering => false,
       _RegistrationStep.complete => true,
     };
   }
@@ -176,7 +241,7 @@ class _ProductRegistrationPageState
       _RegistrationStep.productInfo => '후보 확인',
       _RegistrationStep.candidate => '알림 선택',
       _RegistrationStep.notifications => '등록하기',
-      _RegistrationStep.registering => '완료 보기',
+      _RegistrationStep.registering => '등록 중',
       _RegistrationStep.complete => '확인',
     };
   }
@@ -226,22 +291,64 @@ class _ProductRegistrationPageState
       return;
     }
 
-    if (_step == _RegistrationStep.notifications) {
-      final product = ref
-          .read(productRegistrationResultProvider)
-          .saveMockRegisteredProduct();
-
+    if (_step == _RegistrationStep.productInfo && !_registrationInput.isValid) {
       setState(() {
-        _registeredProductId = product.id;
-        _step = _RegistrationStep.registering;
+        _showFieldErrors = true;
+      });
+      return;
+    }
+
+    if (_step == _RegistrationStep.notifications) {
+      _submitRegistration();
+      return;
+    }
+
+    setState(() {
+      _showFieldErrors = false;
+      _step =
+          _RegistrationStep.values[_RegistrationStep.values.indexOf(_step) + 1];
+    });
+  }
+
+  Future<void> _submitRegistration() async {
+    if (!_registrationInput.isValid) {
+      setState(() {
+        _step = _RegistrationStep.productInfo;
+        _showFieldErrors = true;
       });
       return;
     }
 
     setState(() {
-      _step =
-          _RegistrationStep.values[_RegistrationStep.values.indexOf(_step) + 1];
+      _step = _RegistrationStep.registering;
     });
+
+    await Future<void>.delayed(TevioMotion.slow);
+    if (!mounted) {
+      return;
+    }
+
+    final result = ref
+        .read(productRegistrationResultProvider)
+        .registerProduct(_registrationInput);
+
+    result.when(
+      success: (product) {
+        setState(() {
+          _registeredProductId = product.id;
+          _registeredProductName = product.name;
+          _step = _RegistrationStep.complete;
+        });
+      },
+      failure: (failure) {
+        setState(() {
+          _step = _RegistrationStep.notifications;
+        });
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(content: Text(failure.message)));
+      },
+    );
   }
 
   void _resetLocalState() {
@@ -252,7 +359,39 @@ class _ProductRegistrationPageState
     _returnAlert = true;
     _failure = null;
     _hasShownMockFailure = false;
+    _showFieldErrors = false;
     _registeredProductId = null;
+    _registeredProductName = null;
+    _nameController.text = '공기청정기';
+    _brandController.text = 'ABC';
+    _modelNumberController.text = 'ABC-123';
+    _purchasedAtController.text = '2026.07.23';
+    _purchaseStoreController.text = '브랜드 공식몰';
+  }
+
+  ProductRegistrationInput get _registrationInput {
+    return ProductRegistrationInput(
+      name: _nameController.text,
+      brand: _brandController.text,
+      modelNumber: _modelNumberController.text,
+      purchasedAt: _purchasedAtController.text,
+      purchaseStore: _purchaseStoreController.text,
+      recallAlert: _recallAlert,
+      warrantyAlert: _warrantyAlert,
+      returnAlert: _returnAlert,
+    );
+  }
+
+  void _handleProductInfoChanged() {
+    final shouldShowErrors = !_registrationInput.isValid;
+
+    if (_showFieldErrors == shouldShowErrors) {
+      return;
+    }
+
+    setState(() {
+      _showFieldErrors = shouldShowErrors;
+    });
   }
 }
 
@@ -267,8 +406,13 @@ class _MethodStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const TevioSectionHeader(title: '등록 방식'),
-        const SizedBox(height: TevioSpacing.sm),
+        Text('어떤 방식으로 등록할까요?', style: TevioTypography.titleLarge),
+        const SizedBox(height: TevioSpacing.xs),
+        Text(
+          '가장 편한 방법을 선택하면 필요한 정보만 차례로 확인할게요.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: TevioSpacing.xl),
         _MethodTile(
           method: _RegistrationMethod.camera,
           selectedMethod: selectedMethod,
@@ -405,9 +549,25 @@ class _AnalysisStep extends StatelessWidget {
 }
 
 class _ProductInfoStep extends StatelessWidget {
-  const _ProductInfoStep({required this.method});
+  const _ProductInfoStep({
+    required this.method,
+    required this.nameController,
+    required this.brandController,
+    required this.modelNumberController,
+    required this.purchasedAtController,
+    required this.purchaseStoreController,
+    required this.showErrors,
+    required this.onChanged,
+  });
 
   final _RegistrationMethod? method;
+  final TextEditingController nameController;
+  final TextEditingController brandController;
+  final TextEditingController modelNumberController;
+  final TextEditingController purchasedAtController;
+  final TextEditingController purchaseStoreController;
+  final bool showErrors;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -427,21 +587,61 @@ class _ProductInfoStep extends StatelessWidget {
         Text(helperText, style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: TevioSpacing.lg),
         const _FieldLabel('제품명'),
-        const TextField(decoration: InputDecoration(hintText: '예: 공기청정기')),
+        TextField(
+          controller: nameController,
+          onChanged: (_) => onChanged(),
+          decoration: InputDecoration(
+            hintText: '예: 공기청정기',
+            errorText: _requiredErrorText(nameController, '제품명을 입력해 주세요.'),
+          ),
+        ),
         const SizedBox(height: TevioSpacing.md),
         const _FieldLabel('제조사'),
-        const TextField(decoration: InputDecoration(hintText: '예: ABC')),
+        TextField(
+          controller: brandController,
+          onChanged: (_) => onChanged(),
+          decoration: InputDecoration(
+            hintText: '예: ABC',
+            errorText: _requiredErrorText(brandController, '제조사를 입력해 주세요.'),
+          ),
+        ),
         const SizedBox(height: TevioSpacing.md),
         const _FieldLabel('모델번호'),
-        const TextField(decoration: InputDecoration(hintText: '예: ABC-123')),
+        TextField(
+          controller: modelNumberController,
+          onChanged: (_) => onChanged(),
+          decoration: InputDecoration(
+            hintText: '예: ABC-123',
+            errorText: _requiredErrorText(
+              modelNumberController,
+              '모델번호를 입력해 주세요.',
+            ),
+          ),
+        ),
         const SizedBox(height: TevioSpacing.md),
         const _FieldLabel('구매일'),
-        const TextField(decoration: InputDecoration(hintText: '예: 2026.07.23')),
+        TextField(
+          controller: purchasedAtController,
+          onChanged: (_) => onChanged(),
+          decoration: const InputDecoration(hintText: '예: 2026.07.23'),
+        ),
         const SizedBox(height: TevioSpacing.md),
         const _FieldLabel('구매처'),
-        const TextField(decoration: InputDecoration(hintText: '예: 브랜드 공식몰')),
+        TextField(
+          controller: purchaseStoreController,
+          onChanged: (_) => onChanged(),
+          decoration: const InputDecoration(hintText: '예: 브랜드 공식몰'),
+        ),
       ],
     );
+  }
+
+  String? _requiredErrorText(TextEditingController controller, String message) {
+    if (!showErrors || controller.text.trim().isNotEmpty) {
+      return null;
+    }
+
+    return message;
   }
 }
 
@@ -498,27 +698,30 @@ class _RegistrationFailureCopy {
 }
 
 class _CandidateStep extends StatelessWidget {
-  const _CandidateStep();
+  const _CandidateStep({required this.input});
+
+  final ProductRegistrationInput input;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    final normalizedInput = input.normalized();
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TevioSectionHeader(title: '제품 후보 확인'),
-        SizedBox(height: TevioSpacing.sm),
+        const TevioSectionHeader(title: '제품 후보 확인'),
+        const SizedBox(height: TevioSpacing.sm),
         TevioProductCard(
-          name: '공기청정기',
-          brand: 'ABC',
-          modelNumber: 'ABC-123',
-          purchasedAt: '2026.07.23',
+          name: normalizedInput.name,
+          brand: normalizedInput.brand,
+          modelNumber: normalizedInput.modelNumber,
+          purchasedAt: normalizedInput.purchasedAt,
           warrantyText: '365일 예상',
           status: RightsStatus.detected,
           summary: '입력한 모델번호와 가장 유사한 제품 후보예요.',
-          actionLabel: '이 제품으로 등록',
         ),
-        SizedBox(height: TevioSpacing.sm),
-        TevioCard(
+        const SizedBox(height: TevioSpacing.sm),
+        const TevioCard(
           child: Text(
             'OCR 결과가 확실하지 않으면 자동 확정하지 않고 후보를 확인합니다.',
             style: TevioTypography.bodyMedium,
@@ -585,7 +788,9 @@ class _NotificationOptionsStep extends StatelessWidget {
 }
 
 class _RegisteringStep extends StatelessWidget {
-  const _RegisteringStep();
+  const _RegisteringStep({required this.input});
+
+  final ProductRegistrationInput input;
 
   @override
   Widget build(BuildContext context) {
@@ -615,7 +820,7 @@ class _RegisteringStep extends StatelessWidget {
           const Divider(height: TevioSpacing.xl),
           const TevioInfoRow(label: '보증 계산', value: '대기'),
           const Divider(height: TevioSpacing.xl),
-          const TevioInfoRow(label: '알림 설정', value: '저장됨'),
+          TevioInfoRow(label: '알림 설정', value: input.alertSummary),
         ],
       ),
     );

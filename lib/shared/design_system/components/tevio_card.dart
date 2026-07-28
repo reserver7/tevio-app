@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../tokens/tevio_colors.dart';
+import '../tokens/tevio_motion.dart';
 import '../tokens/tevio_radius.dart';
-import '../tokens/tevio_shadows.dart';
 import '../tokens/tevio_spacing.dart';
 
-class TevioCard extends StatelessWidget {
+class TevioCard extends StatefulWidget {
   const TevioCard({
     super.key,
     required this.child,
@@ -18,6 +18,13 @@ class TevioCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
+  State<TevioCard> createState() => _TevioCardState();
+}
+
+class _TevioCardState extends State<TevioCard> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final content = ClipRRect(
       borderRadius: TevioRadius.largeBorder,
@@ -26,26 +33,33 @@ class TevioCard extends StatelessWidget {
           color: TevioColors.surface,
           borderRadius: TevioRadius.largeBorder,
           border: Border.all(color: TevioColors.border),
-          boxShadow: TevioShadows.card,
         ),
         child: Material(
           color: TevioColors.transparent,
-          child: Padding(padding: padding, child: child),
+          child: Padding(padding: widget.padding, child: widget.child),
         ),
       ),
     );
 
-    if (onTap == null) {
+    if (widget.onTap == null) {
       return content;
     }
 
-    return Material(
-      color: TevioColors.transparent,
-      borderRadius: TevioRadius.largeBorder,
-      child: InkWell(
-        onTap: onTap,
+    return AnimatedScale(
+      scale: _pressed ? 0.985 : 1,
+      duration: TevioMotion.fast,
+      curve: TevioMotion.pressCurve,
+      child: Material(
+        color: TevioColors.transparent,
         borderRadius: TevioRadius.largeBorder,
-        child: content,
+        child: InkWell(
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapCancel: () => setState(() => _pressed = false),
+          onTapUp: (_) => setState(() => _pressed = false),
+          borderRadius: TevioRadius.largeBorder,
+          child: content,
+        ),
       ),
     );
   }

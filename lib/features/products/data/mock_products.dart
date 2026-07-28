@@ -1,8 +1,7 @@
-import '../../../shared/design_system/tevio_design_system.dart';
-import '../domain/models/product_summary.dart';
+import 'dtos/product_dto.dart';
 
-const mockProducts = [
-  ProductSummary(
+const mockProductDtos = [
+  ProductDto(
     id: 'vacuum-xyz-vc-2401',
     name: '무선청소기',
     brand: 'XYZ',
@@ -12,11 +11,11 @@ const mockProducts = [
     warrantyText: '보증 확인 필요',
     returnText: '반품 기간 종료',
     receiptStatus: '보관됨',
-    status: RightsStatus.urgent,
+    status: 'urgent',
     statusSummary: '등록된 모델번호와 유사한 공식 리콜 정보가 있어요.',
     recommendedAction: '리콜 내용 확인',
   ),
-  ProductSummary(
+  ProductDto(
     id: 'notebook-sample-nb-16p',
     name: '노트북',
     brand: 'Sample',
@@ -26,11 +25,11 @@ const mockProducts = [
     warrantyText: '28일 남음',
     returnText: '반품 기간 종료',
     receiptStatus: '보관됨',
-    status: RightsStatus.actionRequired,
+    status: 'actionRequired',
     statusSummary: '무상보증 종료 전 필요한 점검과 서류를 확인하세요.',
     recommendedAction: '보증 정보 확인',
   ),
-  ProductSummary(
+  ProductDto(
     id: 'air-purifier-abc-123',
     name: '공기청정기',
     brand: 'ABC',
@@ -40,7 +39,7 @@ const mockProducts = [
     warrantyText: '364일 남음',
     returnText: '12일 남음',
     receiptStatus: '보관됨',
-    status: RightsStatus.safe,
+    status: 'safe',
     statusSummary: '현재 확인할 문제는 없어요.',
     recommendedAction: '상세보기',
   ),

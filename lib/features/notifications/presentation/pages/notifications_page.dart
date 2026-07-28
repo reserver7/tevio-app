@@ -90,7 +90,6 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             title: notification.title,
             description: notification.description,
             receivedAt: notification.receivedAt,
-            actionLabel: notification.actionLabel,
             isRead: notification.isRead,
             onTap: () => _openNotification(notification),
           ),

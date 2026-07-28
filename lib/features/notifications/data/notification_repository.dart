@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/design_system/tevio_design_system.dart';
 import '../domain/models/tevio_notification.dart';
+import 'mappers/notification_mapper.dart';
 import 'mock_notifications.dart';
 
 abstract interface class NotificationRepository {
@@ -32,7 +33,7 @@ class NotificationInbox extends Notifier<List<TevioNotification>>
     implements NotificationRepository {
   @override
   List<TevioNotification> build() {
-    return mockNotifications;
+    return [for (final dto in mockNotificationDtos) dto.toDomain()];
   }
 
   @override
