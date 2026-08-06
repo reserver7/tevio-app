@@ -13,7 +13,6 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version-file: pubspec.yaml
       - run: flutter pub get
       - run: dart run tool/check_design_system.dart
       - run: flutter analyze
