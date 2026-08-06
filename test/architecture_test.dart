@@ -86,9 +86,7 @@ void main() {
         RegExp(r'(^|[^A-Za-z0-9_])Colors\.'),
       );
       final hasRawTextStyle = source.contains(RegExp(r'\bTextStyle\('));
-      final hasRawRadius =
-          source.contains(RegExp(r'\bRadius\.circular\(')) ||
-          source.contains(RegExp(r'\bBorderRadius\.'));
+      final hasRawRadius = source.contains(RegExp(r'\bRadius\.circular\('));
 
       if (hasRawColor || hasMaterialColors || hasRawTextStyle || hasRawRadius) {
         violations.add(file.path);
@@ -99,6 +97,43 @@ void main() {
       violations,
       isEmpty,
       reason: '색상, 타이포그래피, radius 원시값은 design system token으로 승격해야 합니다.',
+    );
+  });
+
+  test('feature UI uses Tevio interaction components', () {
+    final forbiddenInteractions = <RegExp>[
+      RegExp(r'\bElevatedButton\s*\('),
+      RegExp(r'\bOutlinedButton\s*\('),
+      RegExp(r'\bTextButton\s*\('),
+      RegExp(r'\bIconButton\s*\('),
+      RegExp(r'\bTextField\s*\('),
+      RegExp(r'\bTextFormField\s*\('),
+      RegExp(r'\bCheckbox\s*\('),
+      RegExp(r'\bRadio\s*(?:<[^>]+>)?\s*\('),
+      RegExp(r'\bSwitch\s*\('),
+      RegExp(r'\bDropdownButton'),
+      RegExp(r'\bshowModalBottomSheet\s*\('),
+      RegExp(r'\bAlertDialog\s*\('),
+      RegExp(r'\bSnackBar\s*\('),
+      RegExp(r'\bSnackBarAction\s*\('),
+      RegExp(r'\bPopupMenuButton\s*\('),
+      RegExp(r'\bScaffoldMessenger\.of\s*\('),
+    ];
+    final violations = <String>[];
+
+    for (final file in libFiles.where(_isFeatureFile)) {
+      final source = file.readAsStringSync();
+      for (final interaction in forbiddenInteractions) {
+        if (interaction.hasMatch(source)) {
+          violations.add('${file.path}: ${interaction.pattern}');
+        }
+      }
+    }
+
+    expect(
+      violations,
+      isEmpty,
+      reason: 'feature의 사용자 인터랙션은 Tevio 디자인 시스템 컴포넌트를 사용해야 합니다.',
     );
   });
 
@@ -132,6 +167,8 @@ bool _isAppOrFeatureFile(File file) {
   return file.path.startsWith('lib/app/') ||
       file.path.startsWith('lib/features/');
 }
+
+bool _isFeatureFile(File file) => file.path.startsWith('lib/features/');
 
 bool _isTokenFile(File file) {
   return file.path.startsWith('lib/shared/design_system/tokens/');

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../tokens/tevio_colors.dart';
+import '../tokens/tevio_dimensions.dart';
+import '../tokens/tevio_motion.dart';
 import '../tokens/tevio_radius.dart';
 import '../tokens/tevio_spacing.dart';
+import '../tokens/tevio_theme_colors.dart';
 
 class TevioSelectionTile extends StatelessWidget {
   const TevioSelectionTile({
@@ -24,51 +27,68 @@ class TevioSelectionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Material(
-      color: TevioColors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: TevioRadius.largeBorder,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: selected
-                ? TevioColors.primaryBackground
-                : TevioColors.surface,
-            borderRadius: TevioRadius.largeBorder,
-            border: Border.all(
-              color: selected ? TevioColors.primary : TevioColors.border,
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$title, $description, ${selected ? '선택됨' : '선택 안 됨'}',
+      child: Material(
+        color: TevioColors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: TevioRadius.largeBorder,
+          child: AnimatedContainer(
+            duration: TevioMotion.fast,
+            constraints: const BoxConstraints(
+              minHeight: TevioDimensions.minTouchTarget,
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(TevioSpacing.md),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  icon,
-                  color: selected
-                      ? TevioColors.primary
-                      : TevioColors.textTertiary,
-                ),
-                const SizedBox(width: TevioSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: textTheme.titleMedium),
-                      const SizedBox(height: TevioSpacing.xxs),
-                      Text(description, style: textTheme.bodyMedium),
-                    ],
+            decoration: BoxDecoration(
+              color: selected
+                  ? TevioThemeColors.selectedSurface(context)
+                  : TevioThemeColors.surface(context),
+              borderRadius: TevioRadius.largeBorder,
+              border: Border.all(
+                color: selected
+                    ? TevioColors.primary
+                    : TevioThemeColors.border(context),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(TevioSpacing.md),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    icon,
+                    color: selected
+                        ? TevioColors.primary
+                        : TevioThemeColors.secondaryText(context),
                   ),
-                ),
-                const SizedBox(width: TevioSpacing.sm),
-                Icon(
-                  selected ? Icons.check_circle : Icons.radio_button_unchecked,
-                  color: selected
-                      ? TevioColors.primary
-                      : TevioColors.textTertiary,
-                ),
-              ],
+                  const SizedBox(width: TevioSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: textTheme.titleMedium),
+                        const SizedBox(height: TevioSpacing.xxs),
+                        Text(description, style: textTheme.bodyMedium),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: TevioSpacing.sm),
+                  AnimatedSwitcher(
+                    duration: TevioMotion.fast,
+                    child: Icon(
+                      selected
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      key: ValueKey(selected),
+                      color: selected
+                          ? TevioColors.primary
+                          : TevioThemeColors.secondaryText(context),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -10,6 +10,7 @@ abstract final class TevioColors {
   static const background = Color(0xFFF6F8FC);
   static const surface = Color(0xFFFFFFFF);
   static const transparent = Color(0x00000000);
+  static const scrim = Color(0x8A000000);
   static const white = Color(0xFFFFFFFF);
   static const whiteMuted = Color(0xB3FFFFFF);
 
@@ -25,4 +26,8 @@ abstract final class TevioColors {
   static const primaryBackground = Color(0xFFEEF4FF);
   static const warningBackground = Color(0xFFFFF6E8);
   static const dangerBackground = Color(0xFFFFEEEE);
+
+  static const darkBackground = Color(0xFF0B1220);
+  static const darkSurface = Color(0xFF162238);
+  static const darkBorder = Color(0xFF2A3B55);
 }

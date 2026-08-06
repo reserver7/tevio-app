@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,9 +35,9 @@ class ProductDetailPage extends ConsumerWidget {
         appBar: TevioAppBar(
           title: '제품 상세',
           leading: openedFromNotifications
-              ? IconButton(
+              ? TevioIconButton(
                   tooltip: '알림으로 돌아가기',
-                  icon: const Icon(Icons.arrow_back_ios_new),
+                  icon: Icons.arrow_back_ios_new,
                   onPressed: () => _goBackToNotifications(context),
                 )
               : null,
@@ -52,10 +54,17 @@ class ProductDetailPage extends ConsumerWidget {
     return Scaffold(
       appBar: TevioAppBar(
         title: '제품 상세',
+        actions: [
+          TevioIconButton(
+            tooltip: '제품 관리',
+            icon: Icons.more_horiz,
+            onPressed: () => _showProductManagementSheet(context, ref, product),
+          ),
+        ],
         leading: openedFromNotifications
-            ? IconButton(
+            ? TevioIconButton(
                 tooltip: '알림으로 돌아가기',
-                icon: const Icon(Icons.arrow_back_ios_new),
+                icon: Icons.arrow_back_ios_new,
                 onPressed: () => _goBackToNotifications(context),
               )
             : null,
@@ -71,12 +80,18 @@ class ProductDetailPage extends ConsumerWidget {
               title: detail!.primaryTitle,
               description: product.statusSummary,
               actionLabel: product.recommendedAction,
-              onTap: () => _showRightsActionSheet(
-                context,
-                ref,
-                product,
-                detail.primaryAction,
-              ),
+              onTap:
+                  product.status == RightsStatus.unknown &&
+                      product.recommendedAction == '다시 확인하기'
+                  ? () => _retryProductCheck(context, ref, product)
+                  : product.status == RightsStatus.unknown
+                  ? () => _showProductEditSheet(context, ref, product)
+                  : () => _showRightsActionSheet(
+                      context,
+                      ref,
+                      product,
+                      detail.primaryAction,
+                    ),
             ),
             const SizedBox(height: TevioSpacing.xl),
             const TevioSectionHeader(title: '권리 상태'),
@@ -121,7 +136,33 @@ class ProductDetailPage extends ConsumerWidget {
                   TevioInfoRow(label: '구매처', value: product.purchaseStore),
                   const Divider(height: TevioSpacing.xl),
                   TevioInfoRow(label: '영수증', value: product.receiptStatus),
+                  const Divider(height: TevioSpacing.xl),
+                  TevioInfoRow(
+                    label: '마지막 확인',
+                    value: product.lastCheckedAt == null
+                        ? '확인 기록 없음'
+                        : product.needsRecheck
+                        ? '다시 확인 필요'
+                        : '최근 확인됨',
+                  ),
                 ],
+              ),
+            ),
+            const SizedBox(height: TevioSpacing.xl),
+            TevioSectionHeader(
+              title: '상태 확인',
+              actionLabel: '지금 확인',
+              onActionPressed: product.status == RightsStatus.processing
+                  ? null
+                  : () => _confirmRecheck(context, ref, product),
+            ),
+            const SizedBox(height: TevioSpacing.xs),
+            Text(
+              product.status == RightsStatus.processing
+                  ? '테비오가 최신 상태를 확인하고 있어요.'
+                  : '마지막 확인 이후 변경된 권리 정보를 확인해요.',
+              style: TevioTypography.bodyMedium.copyWith(
+                color: TevioColors.textSecondary,
               ),
             ),
             const SizedBox(height: TevioSpacing.xl),
@@ -163,17 +204,59 @@ class ProductDetailPage extends ConsumerWidget {
     context.go('/notifications');
   }
 
+  Future<void> _showProductManagementSheet(
+    BuildContext context,
+    WidgetRef ref,
+    ProductSummary product,
+  ) async {
+    final shouldDelete = await TevioSheet.show<bool>(
+      context,
+      builder: (sheetContext) => TevioSheet(
+        title: '제품 관리',
+        child: TevioListRow(
+          icon: Icons.delete_outline,
+          title: '제품 삭제',
+          description: '제품 정보와 상태 확인 대상에서 제외합니다.',
+          isDestructive: true,
+          onTap: () => Navigator.of(sheetContext).pop(true),
+        ),
+      ),
+    );
+    if (shouldDelete == true && context.mounted) {
+      await _confirmDelete(context, ref, product);
+    }
+  }
+
+  Future<void> _confirmRecheck(
+    BuildContext context,
+    WidgetRef ref,
+    ProductSummary product,
+  ) async {
+    final confirmed = await TevioSheet.show<bool>(
+      context,
+      builder: (sheetContext) => const TevioConfirmSheet(
+        title: '권리 상태를 다시 확인할까요?',
+        description: '등록된 제품 정보로 리콜, 보증, 반품·교환 상태를 다시 확인합니다.',
+        confirmLabel: '지금 확인하기',
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+
+    unawaited(ref.read(productUpdateCommandProvider).recheck(product));
+    TevioSnackbar.show(context, '최신 상태를 확인하고 있어요.');
+  }
+
   Future<void> _showRightsActionSheet(
     BuildContext context,
     WidgetRef ref,
     ProductSummary product,
     _RightsActionDetail action,
   ) async {
-    final confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      useRootNavigator: true,
-      showDragHandle: true,
+    final confirmed = await TevioSheet.show<bool>(
+      context,
       builder: (context) => _RightsActionSheet(action: action),
     );
 
@@ -207,14 +290,10 @@ class ProductDetailPage extends ConsumerWidget {
               description: action.notificationResultDescription,
             );
 
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(SnackBar(content: Text(action.resultToast)));
+        TevioSnackbar.show(context, action.resultToast);
       },
       failure: (failure) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(SnackBar(content: Text(failure.message)));
+        TevioSnackbar.show(context, failure.message);
       },
     );
   }
@@ -224,11 +303,8 @@ class ProductDetailPage extends ConsumerWidget {
     WidgetRef ref,
     ProductSummary product,
   ) async {
-    final updatedProduct = await showModalBottomSheet<ProductSummary>(
-      context: context,
-      isScrollControlled: true,
-      useRootNavigator: true,
-      showDragHandle: true,
+    final updatedProduct = await TevioSheet.show<ProductSummary>(
+      context,
       builder: (context) => _ProductEditSheet(product: product),
     );
 
@@ -236,7 +312,15 @@ class ProductDetailPage extends ConsumerWidget {
       return;
     }
 
-    final result = ref.read(productUpdateCommandProvider).save(updatedProduct);
+    final requiresRecheck = product.status == RightsStatus.unknown;
+    final productToSave = requiresRecheck
+        ? updatedProduct.copyWith(
+            status: RightsStatus.processing,
+            statusSummary: '보완한 정보로 권리 상태를 다시 확인하고 있어요.',
+            recommendedAction: '확인 상태 보기',
+          )
+        : updatedProduct;
+    final result = ref.read(productUpdateCommandProvider).save(productToSave);
 
     result.when(
       success: (savedProduct) {
@@ -248,20 +332,161 @@ class ProductDetailPage extends ConsumerWidget {
                 productId: savedProduct.id,
                 occurredAtLabel: '방금',
                 title: '제품 정보가 수정됐어요',
-                description: '변경된 정보로 권리 상태를 다시 확인합니다.',
+                description: requiresRecheck
+                    ? '보완한 정보로 권리 상태를 다시 확인하기 시작했어요.'
+                    : '변경된 정보로 권리 상태를 다시 확인합니다.',
               ),
             );
 
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            const SnackBar(content: Text('제품 정보를 저장했어요. 테비오가 다시 확인합니다.')),
-          );
+        TevioSnackbar.show(
+          context,
+          requiresRecheck
+              ? '정보를 저장했어요. 테비오가 다시 확인하고 있어요.'
+              : '제품 정보를 저장했어요. 테비오가 다시 확인합니다.',
+        );
+        if (requiresRecheck) {
+          Future<void>.delayed(TevioMotion.slow, () {
+            if (!context.mounted) {
+              return;
+            }
+            final completed = savedProduct.copyWith(
+              status: RightsStatus.safe,
+              statusSummary: '보완한 정보 기준으로 확인할 문제는 없어요.',
+              recommendedAction: '상태 상세 보기',
+            );
+            ref.read(productUpdateCommandProvider).save(completed);
+            ref
+                .read(productActivityCommandProvider)
+                .record(
+                  ProductActivity(
+                    id: '${completed.id}-rechecked-${DateTime.now().millisecondsSinceEpoch}',
+                    productId: completed.id,
+                    occurredAtLabel: '방금',
+                    title: '권리 상태를 다시 확인했어요',
+                    description: completed.statusSummary,
+                  ),
+                );
+            ref
+                .read(notificationCommandProvider)
+                .resolveProductNotification(
+                  productId: completed.id,
+                  category: TevioNotificationCategory.infoRequired,
+                  title: '제품 정보를 확인했어요',
+                  description: completed.statusSummary,
+                );
+            TevioSnackbar.show(context, '확인이 끝났어요. 현재 문제는 없어요.');
+          });
+        }
       },
       failure: (failure) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(SnackBar(content: Text(failure.message)));
+        TevioSnackbar.show(context, failure.message);
+      },
+    );
+  }
+
+  Future<void> _retryProductCheck(
+    BuildContext context,
+    WidgetRef ref,
+    ProductSummary product,
+  ) async {
+    final processing = product.copyWith(
+      status: RightsStatus.processing,
+      statusSummary: '연결을 확인하고 권리 상태를 다시 조회하고 있어요.',
+      recommendedAction: '확인 상태 보기',
+    );
+    ref.read(productUpdateCommandProvider).save(processing);
+    ref
+        .read(productActivityCommandProvider)
+        .record(
+          ProductActivity(
+            id: '${product.id}-retry-${DateTime.now().millisecondsSinceEpoch}',
+            productId: product.id,
+            occurredAtLabel: '방금',
+            title: '권리 상태를 다시 확인하고 있어요',
+            description: '연결이 복구되면 확인 결과를 바로 알려드릴게요.',
+          ),
+        );
+    TevioSnackbar.show(context, '다시 확인하고 있어요.');
+
+    await Future<void>.delayed(TevioMotion.slow);
+    if (!context.mounted) {
+      return;
+    }
+    final completed = processing.copyWith(
+      status: RightsStatus.safe,
+      statusSummary: '연결이 복구되어 현재 확인할 문제는 없어요.',
+      recommendedAction: '상태 상세 보기',
+    );
+    ref.read(productUpdateCommandProvider).save(completed);
+    ref
+        .read(productActivityCommandProvider)
+        .record(
+          ProductActivity(
+            id: '${product.id}-retry-complete-${DateTime.now().millisecondsSinceEpoch}',
+            productId: product.id,
+            occurredAtLabel: '방금',
+            title: '권리 상태 확인을 완료했어요',
+            description: completed.statusSummary,
+          ),
+        );
+    ref
+        .read(notificationCommandProvider)
+        .resolveProductNotification(
+          productId: product.id,
+          category: TevioNotificationCategory.infoRequired,
+          title: '권리 상태를 확인했어요',
+          description: completed.statusSummary,
+        );
+    TevioSnackbar.show(context, '확인이 끝났어요.');
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    ProductSummary product,
+  ) async {
+    final confirmed = await TevioSheet.show<bool>(
+      context,
+      builder: (sheetContext) => TevioConfirmSheet(
+        title: '제품을 삭제할까요?',
+        description:
+            '${product.name}의 제품 정보와 상태 확인 대상에서 제외합니다. 삭제 직후에는 되돌릴 수 있어요.',
+        confirmLabel: '제품 삭제',
+        isDestructive: true,
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+
+    final result = ref.read(productUpdateCommandProvider).delete(product);
+    result.when(
+      success: (removedProduct) {
+        final removedNotifications = ref
+            .read(notificationCommandProvider)
+            .removeForProduct(product.id);
+        final removedActivities = ref
+            .read(productActivityCommandProvider)
+            .removeForProduct(product.id);
+        context.go('/products');
+        TevioSnackbar.show(
+          context,
+          '제품을 삭제했어요.',
+          actionLabel: '되돌리기',
+          onAction: () {
+            ref.read(productUpdateCommandProvider).restore(removedProduct);
+            ref
+                .read(notificationCommandProvider)
+                .restoreMany(removedNotifications);
+            ref
+                .read(productActivityCommandProvider)
+                .restoreMany(removedActivities);
+          },
+        );
+      },
+      failure: (failure) {
+        TevioSnackbar.show(context, failure.message);
       },
     );
   }
@@ -401,14 +626,10 @@ class _ProductAlertSettings extends StatelessWidget {
 
     result.when(
       success: (_) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(const SnackBar(content: Text('이 제품 알림 설정을 저장했어요.')));
+        TevioSnackbar.show(context, '이 제품 알림 설정을 저장했어요.');
       },
       failure: (failure) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(SnackBar(content: Text(failure.message)));
+        TevioSnackbar.show(context, failure.message);
       },
     );
   }
@@ -434,14 +655,9 @@ class _ProductAlertToggle extends StatelessWidget {
     return Column(
       children: [
         if (!isFirst) const Divider(height: 1),
-        SwitchListTile.adaptive(
-          value: value,
-          onChanged: onChanged,
-          title: Text(title),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: TevioSpacing.md,
-            vertical: TevioSpacing.xs,
-          ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: TevioSpacing.md),
+          child: TevioSwitch(value: value, onChanged: onChanged, label: title),
         ),
         if (isLast) const SizedBox(height: TevioSpacing.xs),
       ],
@@ -554,18 +770,13 @@ class _RightsActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return TevioSheet(
+      title: action.title,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.66,
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            TevioSpacing.lg,
-            TevioSpacing.sm,
-            TevioSpacing.lg,
-            TevioSpacing.lg,
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -581,8 +792,6 @@ class _RightsActionSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: TevioSpacing.md),
-              Text(action.title, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: TevioSpacing.xs),
               Text(
                 action.description,
                 style: Theme.of(context).textTheme.bodyMedium,
@@ -670,11 +879,10 @@ class _ProductEditSheetState extends State<_ProductEditSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return TevioSheet(
+      title: '제품 정보 수정',
       child: Padding(
         padding: EdgeInsets.only(
-          left: TevioSpacing.lg,
-          right: TevioSpacing.lg,
           bottom: MediaQuery.viewInsetsOf(context).bottom + TevioSpacing.lg,
         ),
         child: SingleChildScrollView(
@@ -682,8 +890,6 @@ class _ProductEditSheetState extends State<_ProductEditSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('제품 정보 수정', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: TevioSpacing.xs),
               Text(
                 '정보를 바꾸면 테비오가 리콜, 보증, 반품·교환 가능 기간을 다시 확인합니다.',
                 style: Theme.of(context).textTheme.bodyMedium,
@@ -762,10 +968,7 @@ class _EditField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(labelText: label),
-    );
+    return TevioTextField(controller: controller, label: label);
   }
 }
 
@@ -816,7 +1019,7 @@ class _RightsActionDetail {
     return switch (type) {
       _RightsActionType.recall => '리콜 정보를 확인했어요',
       _RightsActionType.warranty => '보증 정보를 확인했어요',
-      _RightsActionType.productInfo => '권리 상태 확인을 요청했어요',
+      _RightsActionType.productInfo => '권리 상태를 확인했어요',
       _RightsActionType.returnWindow => '반품·교환 정보를 확인했어요',
       _RightsActionType.service => 'A/S 정보를 확인했어요',
       _RightsActionType.overview => '권리 상태를 확인했어요',
@@ -827,7 +1030,7 @@ class _RightsActionDetail {
     return switch (type) {
       _RightsActionType.recall => '모델번호 확인이 완료되어 대응 상태로 전환했어요.',
       _RightsActionType.warranty => '영수증과 구매 정보를 기준으로 보증 대응 준비를 마쳤어요.',
-      _RightsActionType.productInfo => '등록 정보를 기준으로 권리 상태를 다시 계산합니다.',
+      _RightsActionType.productInfo => '등록된 제품 정보 기준으로 확인할 문제는 없어요.',
       _RightsActionType.returnWindow => '반품·교환 가능 조건을 확인했어요.',
       _RightsActionType.service => 'A/S 접수에 필요한 정보를 확인했어요.',
       _RightsActionType.overview => '현재 필요한 조치가 없는 상태를 확인했어요.',
@@ -838,7 +1041,7 @@ class _RightsActionDetail {
     return switch (type) {
       _RightsActionType.recall => '리콜 확인 상태로 변경했어요.',
       _RightsActionType.warranty => '보증 확인 상태로 변경했어요.',
-      _RightsActionType.productInfo => '권리 상태를 다시 확인합니다.',
+      _RightsActionType.productInfo => '권리 상태 확인을 완료했어요.',
       _RightsActionType.returnWindow ||
       _RightsActionType.service ||
       _RightsActionType.overview => '확인했어요.',
@@ -849,7 +1052,7 @@ class _RightsActionDetail {
     return switch (type) {
       _RightsActionType.recall => '리콜 정보를 확인했어요',
       _RightsActionType.warranty => '보증 정보를 확인했어요',
-      _RightsActionType.productInfo => '제품 정보 확인을 시작했어요',
+      _RightsActionType.productInfo => '제품 권리 상태를 확인했어요',
       _RightsActionType.returnWindow => '반품·교환 정보를 확인했어요',
       _RightsActionType.service => 'A/S 정보를 확인했어요',
       _RightsActionType.overview => '권리 상태를 확인했어요',
@@ -860,7 +1063,7 @@ class _RightsActionDetail {
     return switch (type) {
       _RightsActionType.recall => '모델번호 확인 후 대응 상태로 전환됐습니다.',
       _RightsActionType.warranty => '보증 종료 전 필요한 정보를 확인했습니다.',
-      _RightsActionType.productInfo => '권리 상태를 다시 계산하고 있습니다.',
+      _RightsActionType.productInfo => '등록된 제품 정보 기준으로 확인할 문제는 없어요.',
       _RightsActionType.returnWindow => '반품·교환 가능 조건을 확인했습니다.',
       _RightsActionType.service => 'A/S 접수에 필요한 정보를 확인했습니다.',
       _RightsActionType.overview => '현재 필요한 조치가 없는 상태입니다.',
@@ -880,9 +1083,9 @@ class _RightsActionDetail {
         recommendedAction: 'A/S 준비 보기',
       ),
       _RightsActionType.productInfo => product.copyWith(
-        status: RightsStatus.processing,
-        statusSummary: '등록 정보를 기준으로 권리 상태를 다시 확인하고 있어요.',
-        recommendedAction: '확인 상태 보기',
+        status: RightsStatus.safe,
+        statusSummary: '현재 등록된 정보 기준으로 확인할 문제는 없어요.',
+        recommendedAction: '상태 상세 보기',
       ),
       _RightsActionType.returnWindow ||
       _RightsActionType.service ||
@@ -897,8 +1100,8 @@ class _RightsActionDetail {
       RightsStatus.detected => _RightsActionDetail.forProductInfo(product),
       RightsStatus.processing => _RightsActionDetail.forService(product),
       RightsStatus.safe ||
-      RightsStatus.completed ||
-      RightsStatus.unknown => _RightsActionDetail.forOverview(product),
+      RightsStatus.completed => _RightsActionDetail.forOverview(product),
+      RightsStatus.unknown => _RightsActionDetail.forProductInfo(product),
     };
   }
 

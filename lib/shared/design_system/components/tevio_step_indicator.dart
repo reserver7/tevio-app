@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens/tevio_colors.dart';
+import '../tokens/tevio_motion.dart';
 import '../tokens/tevio_radius.dart';
 import '../tokens/tevio_spacing.dart';
 
@@ -16,23 +17,29 @@ class TevioStepIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var index = 0; index < totalSteps; index++) ...[
-          Expanded(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: index <= currentStep
-                    ? TevioColors.primary
-                    : TevioColors.divider,
-                borderRadius: TevioRadius.fullBorder,
+    final completedSteps = (currentStep + 1).clamp(0, totalSteps);
+    return Semantics(
+      label: '전체 $totalSteps단계 중 $completedSteps단계',
+      value: '${((completedSteps / totalSteps) * 100).round()}%',
+      child: Row(
+        children: [
+          for (var index = 0; index < totalSteps; index++) ...[
+            Expanded(
+              child: AnimatedContainer(
+                duration: TevioMotion.fast,
+                decoration: BoxDecoration(
+                  color: index <= currentStep
+                      ? TevioColors.primary
+                      : TevioColors.divider,
+                  borderRadius: TevioRadius.fullBorder,
+                ),
+                child: const SizedBox(height: TevioSpacing.xxs),
               ),
-              child: const SizedBox(height: TevioSpacing.xxs),
             ),
-          ),
-          if (index < totalSteps - 1) const SizedBox(width: TevioSpacing.xs),
+            if (index < totalSteps - 1) const SizedBox(width: TevioSpacing.xs),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

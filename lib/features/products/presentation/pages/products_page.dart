@@ -31,18 +31,26 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
         title: '제품',
         automaticallyImplyLeading: false,
         actions: [
-          IconButton(
+          TevioIconButton(
             tooltip: '제품 보기 설정',
-            icon: const Icon(Icons.tune),
+            icon: Icons.tune,
             onPressed: () => _showViewOptions(context),
           ),
         ],
       ),
       body: SafeArea(
         child: visibleProducts.isEmpty
-            ? const TevioEmptyState(
-                title: '조건에 맞는 제품이 없어요',
-                description: '보기 설정에서 다른 상태를 선택해 주세요.',
+            ? TevioEmptyState(
+                title: _filter == _ProductFilter.all
+                    ? '등록된 제품이 없어요'
+                    : '조건에 맞는 제품이 없어요',
+                description: _filter == _ProductFilter.all
+                    ? '제품을 등록하면 리콜, 보증, 반품·교환 정보를 한곳에서 관리할 수 있어요.'
+                    : '보기 설정에서 다른 상태를 선택해 주세요.',
+                actionLabel: _filter == _ProductFilter.all ? '제품 등록하기' : null,
+                onActionPressed: _filter == _ProductFilter.all
+                    ? () => context.go('/register')
+                    : null,
               )
             : ListView(
                 key: const PageStorageKey('products-scroll'),
@@ -67,15 +75,14 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                     const SizedBox(height: TevioSpacing.md),
                   ],
                   for (final product in visibleProducts) ...[
-                    TevioProductCard(
+                    TevioProductSummaryCard(
                       name: product.name,
-                      brand: product.brand,
-                      modelNumber: product.modelNumber,
-                      purchasedAt: product.purchasedAt,
-                      warrantyText: product.warrantyText,
+                      identity: '${product.brand} · ${product.modelNumber}',
                       status: product.status,
                       summary: product.statusSummary,
-                      onTap: () => context.push('/products/${product.id}'),
+                      primaryLabel: product.recommendedAction,
+                      onPrimaryPressed: () =>
+                          context.push('/products/${product.id}'),
                     ),
                     const SizedBox(height: TevioSpacing.md),
                   ],
@@ -129,31 +136,21 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
     var selectedFilter = _filter;
     var selectedSort = _sort;
 
-    final result = await showModalBottomSheet<(_ProductFilter, _ProductSort)>(
-      context: context,
-      showDragHandle: true,
-      useRootNavigator: true,
-      isScrollControlled: true,
+    final result = await TevioSheet.show<(_ProductFilter, _ProductSort)>(
+      context,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
-          return SafeArea(
+          return TevioSheet(
+            title: '제품 보기',
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.78,
+                maxHeight: MediaQuery.sizeOf(context).height * 0.66,
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  TevioSpacing.lg,
-                  TevioSpacing.sm,
-                  TevioSpacing.lg,
-                  TevioSpacing.lg,
-                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('제품 보기', style: TevioTypography.titleLarge),
-                    const SizedBox(height: TevioSpacing.xs),
                     Text(
                       '필요한 제품을 빠르게 찾을 수 있도록 보기 방식을 정하세요.',
                       style: Theme.of(context).textTheme.bodyMedium,
@@ -166,27 +163,9 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                       runSpacing: TevioSpacing.xs,
                       children: [
                         for (final filter in _ProductFilter.values)
-                          ChoiceChip(
-                            label: Text(filter.label),
+                          TevioChoiceChip(
+                            label: filter.label,
                             selected: selectedFilter == filter,
-                            showCheckmark: false,
-                            selectedColor: TevioColors.primaryBackground,
-                            backgroundColor: TevioColors.surface,
-                            side: BorderSide(
-                              color: selectedFilter == filter
-                                  ? TevioColors.primary
-                                  : TevioColors.border,
-                            ),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: TevioRadius.fullBorder,
-                            ),
-                            labelStyle: Theme.of(context).textTheme.labelLarge
-                                ?.copyWith(
-                                  color: selectedFilter == filter
-                                      ? TevioColors.primary
-                                      : TevioColors.textSecondary,
-                                  fontWeight: FontWeight.w700,
-                                ),
                             onSelected: (_) {
                               setModalState(() => selectedFilter = filter);
                             },
@@ -196,22 +175,17 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                     const SizedBox(height: TevioSpacing.xl),
                     Text('정렬', style: TevioTypography.titleMedium),
                     const SizedBox(height: TevioSpacing.sm),
-                    RadioGroup<_ProductSort>(
-                      groupValue: selectedSort,
-                      onChanged: (value) {
-                        if (value != null) {
-                          setModalState(() => selectedSort = value);
-                        }
-                      },
-                      child: Column(
-                        children: [
-                          for (final sort in _ProductSort.values)
-                            _SortOptionTile(
-                              sort: sort,
-                              selected: selectedSort == sort,
-                            ),
-                        ],
-                      ),
+                    Column(
+                      children: [
+                        for (final sort in _ProductSort.values)
+                          _SortOptionTile(
+                            sort: sort,
+                            groupValue: selectedSort,
+                            onChanged: (value) {
+                              setModalState(() => selectedSort = value);
+                            },
+                          ),
+                      ],
                     ),
                     const SizedBox(height: TevioSpacing.xl),
                     TevioButton(
@@ -241,23 +215,23 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
 }
 
 class _SortOptionTile extends StatelessWidget {
-  const _SortOptionTile({required this.sort, required this.selected});
+  const _SortOptionTile({
+    required this.sort,
+    required this.groupValue,
+    required this.onChanged,
+  });
 
   final _ProductSort sort;
-  final bool selected;
+  final _ProductSort groupValue;
+  final ValueChanged<_ProductSort> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return RadioListTile<_ProductSort>(
-      contentPadding: EdgeInsets.zero,
-      visualDensity: VisualDensity.compact,
-      title: Text(
-        sort.label,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-        ),
-      ),
+    return TevioRadioControl<_ProductSort>(
       value: sort,
+      groupValue: groupValue,
+      label: sort.label,
+      onChanged: onChanged,
     );
   }
 }
@@ -280,7 +254,7 @@ class _ActiveViewSummary extends StatelessWidget {
             ).textTheme.labelLarge?.copyWith(color: TevioColors.textSecondary),
           ),
         ),
-        TextButton(onPressed: onReset, child: const Text('초기화')),
+        TevioTextAction(label: '초기화', onPressed: onReset),
       ],
     );
   }

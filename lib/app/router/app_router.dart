@@ -11,6 +11,7 @@ import '../../features/products/presentation/pages/products_page.dart';
 import '../../features/settings/presentation/pages/notification_settings_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
+import '../../shared/design_system/tevio_design_system.dart';
 import 'app_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -18,6 +19,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
+      GoRoute(
+        path: '/design-system',
+        builder: (context, state) => const TevioCatalogPage(),
+      ),
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingPage(),

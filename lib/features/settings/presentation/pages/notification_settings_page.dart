@@ -75,9 +75,9 @@ class NotificationSettingsPage extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  TextButton(
+                  TevioTextAction(
+                    label: '설정하기',
                     onPressed: () => _requestPermission(context),
-                    child: const Text('설정하기'),
                   ),
                 ],
               ),
@@ -99,9 +99,7 @@ class NotificationSettingsPage extends ConsumerWidget {
         ? '기기 알림을 켰어요.'
         : '기기 설정에서 알림 권한을 허용해 주세요.';
 
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    TevioSnackbar.show(context, message);
   }
 }
 
@@ -127,14 +125,13 @@ class _NotificationToggle extends StatelessWidget {
     return Column(
       children: [
         if (!isFirst) const Divider(height: 1),
-        SwitchListTile.adaptive(
-          value: value,
-          onChanged: onChanged,
-          title: Text(title),
-          subtitle: Text(description),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: TevioSpacing.md,
-            vertical: TevioSpacing.xs,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: TevioSpacing.md),
+          child: TevioSwitch(
+            value: value,
+            onChanged: onChanged,
+            label: title,
+            description: description,
           ),
         ),
         if (isLast) const SizedBox(height: TevioSpacing.xs),

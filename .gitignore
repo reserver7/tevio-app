@@ -33,6 +33,7 @@ migrate_working_dir/
 /build/
 /android/build/
 /coverage/
+test/goldens/failures/
 
 # Symbolication related
 app.*.symbols

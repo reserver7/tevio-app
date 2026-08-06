@@ -2,8 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../../../../shared/design_system/tevio_design_system.dart';
 
-class PublicRecallLookupPage extends StatelessWidget {
+class PublicRecallLookupPage extends StatefulWidget {
   const PublicRecallLookupPage({super.key});
+
+  @override
+  State<PublicRecallLookupPage> createState() => _PublicRecallLookupPageState();
+}
+
+class _PublicRecallLookupPageState extends State<PublicRecallLookupPage> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +25,7 @@ class PublicRecallLookupPage extends StatelessWidget {
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(TevioSpacing.lg),
-          children: const [
+          children: [
             Text('리콜 정보를 확인하세요', style: TevioTypography.titleLarge),
             SizedBox(height: TevioSpacing.xs),
             Text(
@@ -20,11 +33,10 @@ class PublicRecallLookupPage extends StatelessWidget {
               style: TevioTypography.bodyMedium,
             ),
             SizedBox(height: TevioSpacing.xl),
-            TextField(
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.search_outlined),
-                hintText: '제품명, 제조사, 모델번호 검색',
-              ),
+            TevioTextField(
+              controller: _controller,
+              hintText: '제품명, 제조사, 모델번호 검색',
+              prefixIcon: Icon(Icons.search_outlined),
             ),
             SizedBox(height: TevioSpacing.lg),
             TevioEmptyState(

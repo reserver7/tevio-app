@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../notifications/domain/models/tevio_notification.dart';
+import '../../../products/domain/models/product_summary.dart';
+
 final notificationSettingsProvider =
     NotifierProvider<NotificationSettingsController, NotificationSettings>(
       NotificationSettingsController.new,
@@ -33,6 +36,42 @@ class NotificationSettings {
       returnWindow: returnWindow ?? this.returnWindow,
       processing: processing ?? this.processing,
     );
+  }
+}
+
+abstract final class NotificationPolicy {
+  static bool allows({
+    required TevioNotificationCategory category,
+    required NotificationSettings globalSettings,
+    ProductSummary? product,
+    bool devicePermissionGranted = true,
+  }) {
+    if (!devicePermissionGranted) {
+      return false;
+    }
+
+    final globalAllowed = switch (category) {
+      TevioNotificationCategory.immediate => globalSettings.recall,
+      TevioNotificationCategory.dueSoon => globalSettings.warranty,
+      TevioNotificationCategory.processing => globalSettings.processing,
+      TevioNotificationCategory.infoRequired ||
+      TevioNotificationCategory.general => true,
+    };
+
+    if (!globalAllowed) {
+      return false;
+    }
+
+    return switch (category) {
+      TevioNotificationCategory.immediate =>
+        product?.recallAlertEnabled ?? true,
+      TevioNotificationCategory.dueSoon =>
+        product?.warrantyAlertEnabled ?? true,
+      TevioNotificationCategory.infoRequired =>
+        product?.returnAlertEnabled ?? true,
+      TevioNotificationCategory.processing ||
+      TevioNotificationCategory.general => true,
+    };
   }
 }
 

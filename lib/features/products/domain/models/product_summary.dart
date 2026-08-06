@@ -17,6 +17,7 @@ class ProductSummary {
     this.recallAlertEnabled = true,
     this.warrantyAlertEnabled = true,
     this.returnAlertEnabled = true,
+    this.lastCheckedAt,
   });
 
   final String id;
@@ -34,6 +35,13 @@ class ProductSummary {
   final bool recallAlertEnabled;
   final bool warrantyAlertEnabled;
   final bool returnAlertEnabled;
+  final DateTime? lastCheckedAt;
+
+  bool get needsRecheck {
+    final checkedAt = lastCheckedAt;
+    return checkedAt == null ||
+        DateTime.now().difference(checkedAt) >= const Duration(hours: 24);
+  }
 
   ProductSummary copyWith({
     String? name,
@@ -50,6 +58,7 @@ class ProductSummary {
     bool? recallAlertEnabled,
     bool? warrantyAlertEnabled,
     bool? returnAlertEnabled,
+    DateTime? lastCheckedAt,
   }) {
     return ProductSummary(
       id: id,
@@ -67,6 +76,7 @@ class ProductSummary {
       recallAlertEnabled: recallAlertEnabled ?? this.recallAlertEnabled,
       warrantyAlertEnabled: warrantyAlertEnabled ?? this.warrantyAlertEnabled,
       returnAlertEnabled: returnAlertEnabled ?? this.returnAlertEnabled,
+      lastCheckedAt: lastCheckedAt ?? this.lastCheckedAt,
     );
   }
 }
