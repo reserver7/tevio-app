@@ -6,6 +6,7 @@ import '../../../../shared/infrastructure/result/tevio_result.dart';
 import '../../data/product_repository.dart';
 import '../../domain/models/product_activity.dart';
 import '../../domain/models/product_summary.dart';
+import '../../domain/services/product_status_resolver.dart';
 import 'product_activity_queries.dart';
 
 final productRegistrationResultProvider = Provider<ProductRegistrationResult>((
@@ -18,6 +19,7 @@ class ProductRegistrationResult {
   const ProductRegistrationResult(this._ref);
 
   final Ref _ref;
+  static const _statusResolver = ProductStatusResolver();
 
   TevioResult<ProductSummary> registerProduct(ProductRegistrationInput input) {
     try {
@@ -28,6 +30,10 @@ class ProductRegistrationResult {
       }
 
       final normalizedInput = input.normalized();
+      final statusResult = _statusResolver.resolve(
+        modelNumber: normalizedInput.modelNumber,
+        receiptStatus: normalizedInput.receiptStatus,
+      );
       final product = ProductSummary(
         id: normalizedInput.productId,
         name: normalizedInput.name,
@@ -38,9 +44,10 @@ class ProductRegistrationResult {
         warrantyText: '365일 남음',
         returnText: '14일 남음',
         receiptStatus: normalizedInput.receiptStatus,
-        status: RightsStatus.detected,
-        statusSummary: '등록이 완료되어 리콜과 보증 정보를 확인하고 있어요.',
-        recommendedAction: '권리 상태 확인',
+        status: statusResult.status,
+        statusSummary: statusResult.summary,
+        recommendedAction: statusResult.actionLabel,
+        lastCheckedAt: DateTime.now(),
         recallAlertEnabled: normalizedInput.recallAlert,
         warrantyAlertEnabled: normalizedInput.warrantyAlert,
         returnAlertEnabled: normalizedInput.returnAlert,
@@ -59,7 +66,7 @@ class ProductRegistrationResult {
               occurredAtLabel: '방금',
               title: '제품이 등록됐어요',
               description:
-                  '테비오가 권리 상태를 확인하기 시작했어요. ${normalizedInput.alertSummary}',
+                  '${savedProduct.status.label} · ${savedProduct.statusSummary} ${normalizedInput.alertSummary}',
             ),
           );
 
@@ -96,7 +103,34 @@ class ProductRegistrationInput {
   final bool returnAlert;
 
   bool get isValid {
-    return name.isNotEmpty && brand.isNotEmpty && modelNumber.isNotEmpty;
+    return name.isNotEmpty &&
+        brand.isNotEmpty &&
+        hasValidModelNumber &&
+        (purchasedAt.trim().isEmpty || hasValidPurchaseDate);
+  }
+
+  bool get hasValidModelNumber {
+    return RegExp(
+      r'^[A-Za-z0-9가-힣][A-Za-z0-9가-힣._-]{2,}$',
+    ).hasMatch(modelNumber.trim());
+  }
+
+  bool get hasValidPurchaseDate {
+    final parts = purchasedAt.split('.');
+    if (parts.length != 3) {
+      return false;
+    }
+
+    final date = DateTime.tryParse(
+      '${parts[0].padLeft(4, '0')}-${parts[1].padLeft(2, '0')}-${parts[2].padLeft(2, '0')}',
+    );
+    if (date == null) {
+      return false;
+    }
+
+    final today = DateTime.now();
+    final currentDate = DateTime(today.year, today.month, today.day);
+    return !date.isAfter(currentDate);
   }
 
   String get productId {

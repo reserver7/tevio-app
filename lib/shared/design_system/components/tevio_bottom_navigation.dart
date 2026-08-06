@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../tokens/tevio_colors.dart';
+import '../tokens/tevio_dimensions.dart';
+import '../tokens/tevio_motion.dart';
 import '../tokens/tevio_radius.dart';
+import '../tokens/tevio_theme_colors.dart';
 
 class TevioBottomNavigation extends StatelessWidget {
   const TevioBottomNavigation({
@@ -23,11 +26,11 @@ class TevioBottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: TevioColors.surface,
+      color: TevioThemeColors.surface(context),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 56,
+          height: TevioDimensions.navigationHeight,
           child: Row(
             children: [
               for (var index = 0; index < _items.length; index++)
@@ -59,25 +62,42 @@ class _NavigationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? TevioColors.primary : TevioColors.textTertiary;
+    final color = selected
+        ? TevioColors.primary
+        : TevioThemeColors.secondaryText(context);
 
     return Semantics(
       button: true,
       selected: selected,
       label: item.label,
-      child: IconButton(
-        tooltip: item.label,
-        onPressed: onPressed,
-        style: IconButton.styleFrom(
-          minimumSize: const Size(44, 44),
-          backgroundColor: selected
-              ? TevioColors.primaryBackground
-              : TevioColors.transparent,
-          shape: const RoundedRectangleBorder(
-            borderRadius: TevioRadius.fullBorder,
+      child: Tooltip(
+        message: item.label,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: TevioRadius.fullBorder,
+          child: AnimatedContainer(
+            duration: TevioMotion.fast,
+            curve: TevioMotion.standardCurve,
+            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: selected
+                  ? TevioThemeColors.selectedSurface(context)
+                  : TevioColors.transparent,
+              borderRadius: TevioRadius.fullBorder,
+            ),
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: TevioMotion.fast,
+                child: Icon(
+                  selected ? item.selectedIcon : item.icon,
+                  key: ValueKey(selected),
+                  color: color,
+                  size: 24,
+                ),
+              ),
+            ),
           ),
         ),
-        icon: Icon(selected ? item.selectedIcon : item.icon, color: color),
       ),
     );
   }

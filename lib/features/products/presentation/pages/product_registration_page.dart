@@ -44,6 +44,7 @@ class _ProductRegistrationPageState
   bool _warrantyAlert = true;
   bool _returnAlert = true;
   _RegistrationFailure? _failure;
+  bool _showDraftPrompt = false;
   bool _hasShownMockFailure = false;
   bool _showFieldErrors = false;
   String? _registeredProductId;
@@ -58,15 +59,52 @@ class _ProductRegistrationPageState
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: '공기청정기');
-    _brandController = TextEditingController(text: 'ABC');
-    _modelNumberController = TextEditingController(text: 'ABC-123');
-    _purchasedAtController = TextEditingController(text: '2026.07.23');
-    _purchaseStoreController = TextEditingController(text: '브랜드 공식몰');
+    _activeSession = ref.read(productRegistrationSessionProvider);
+    final draft = ref.read(productRegistrationDraftProvider);
+    _showDraftPrompt = draft != null;
+    _step = draft == null
+        ? _RegistrationStep.method
+        : _RegistrationStep.values[draft.step];
+    _method = draft?.method == null
+        ? null
+        : _RegistrationMethod.values[draft!.method!];
+    _recallAlert = draft?.recallAlert ?? true;
+    _warrantyAlert = draft?.warrantyAlert ?? true;
+    _returnAlert = draft?.returnAlert ?? true;
+    _nameController = TextEditingController(text: draft?.name ?? '공기청정기');
+    _brandController = TextEditingController(text: draft?.brand ?? 'ABC');
+    _modelNumberController = TextEditingController(
+      text: draft?.modelNumber ?? 'ABC-123',
+    );
+    _purchasedAtController = TextEditingController(
+      text: draft?.purchasedAt ?? '2026.07.23',
+    );
+    _purchaseStoreController = TextEditingController(
+      text: draft?.purchaseStore ?? '브랜드 공식몰',
+    );
   }
 
   @override
   void dispose() {
+    if (_step != _RegistrationStep.complete &&
+        _step != _RegistrationStep.registering) {
+      ref
+          .read(productRegistrationDraftProvider.notifier)
+          .save(
+            ProductRegistrationDraft(
+              step: _step.index,
+              method: _method?.index,
+              name: _nameController.text,
+              brand: _brandController.text,
+              modelNumber: _modelNumberController.text,
+              purchasedAt: _purchasedAtController.text,
+              purchaseStore: _purchaseStoreController.text,
+              recallAlert: _recallAlert,
+              warrantyAlert: _warrantyAlert,
+              returnAlert: _returnAlert,
+            ),
+          );
+    }
     _nameController.dispose();
     _brandController.dispose();
     _modelNumberController.dispose();
@@ -108,12 +146,20 @@ class _ProductRegistrationPageState
               TevioStepIndicator(currentStep: _progressStep!, totalSteps: 4),
               const SizedBox(height: TevioSpacing.xl),
             ],
-            _buildStepContent(),
+            if (_showDraftPrompt)
+              _DraftResumeCard(
+                onResume: () => setState(() => _showDraftPrompt = false),
+                onStartOver: _startOver,
+              )
+            else
+              _buildStepContent(),
           ],
         ),
       ),
       bottomNavigationBar:
-          _failure == null && _step != _RegistrationStep.registering
+          _failure == null &&
+              _step != _RegistrationStep.registering &&
+              !_showDraftPrompt
           ? SafeArea(
               minimum: const EdgeInsets.all(TevioSpacing.lg),
               child: Row(
@@ -197,6 +243,8 @@ class _ProductRegistrationPageState
         purchaseStoreController: _purchaseStoreController,
         showErrors: _showFieldErrors,
         onChanged: _handleProductInfoChanged,
+        purchaseDate: _parseDate(_purchasedAtController.text),
+        onPurchaseDateChanged: _setPurchaseDate,
       ),
       _RegistrationStep.candidate => _CandidateStep(input: _registrationInput),
       _RegistrationStep.notifications => _NotificationOptionsStep(
@@ -212,7 +260,10 @@ class _ProductRegistrationPageState
       ),
       _RegistrationStep.complete => TevioCompletionView(
         title: '${_registeredProductName ?? '제품'} 등록이 완료됐어요.',
-        description: '이제 테비오가 이 제품의 권리를 계속 확인할게요.',
+        description: '테비오가 리콜, 보증, 반품·교환 정보를 확인하고 있어요.',
+        status: RightsStatus.detected,
+        statusLabel: '확인 중',
+        statusDescription: '확인이 끝나면 필요한 내용만 알려드릴게요.',
       ),
     };
   }
@@ -254,8 +305,37 @@ class _ProductRegistrationPageState
     });
   }
 
+  void _setPurchaseDate(DateTime? selectedDate) {
+    if (selectedDate == null) {
+      return;
+    }
+    _purchasedAtController.text =
+        '${selectedDate.year.toString().padLeft(4, '0')}.${selectedDate.month.toString().padLeft(2, '0')}.${selectedDate.day.toString().padLeft(2, '0')}';
+    _handleProductInfoChanged();
+  }
+
+  DateTime? _parseDate(String value) {
+    final parts = value.split('.');
+    if (parts.length != 3) {
+      return null;
+    }
+
+    return DateTime.tryParse(
+      '${parts[0]}-${parts[1].padLeft(2, '0')}-${parts[2].padLeft(2, '0')}',
+    );
+  }
+
+  void _startOver() {
+    ref.read(productRegistrationDraftProvider.notifier).clear();
+    setState(() {
+      _showDraftPrompt = false;
+      _resetLocalState();
+    });
+  }
+
   void _goNext() {
     if (_step == _RegistrationStep.complete) {
+      ref.read(productRegistrationDraftProvider.notifier).clear();
       ref.read(productRegistrationSessionProvider.notifier).reset();
       if (_registeredProductId != null) {
         context.go('/products/$_registeredProductId');
@@ -344,14 +424,13 @@ class _ProductRegistrationPageState
         setState(() {
           _step = _RegistrationStep.notifications;
         });
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(SnackBar(content: Text(failure.message)));
+        TevioSnackbar.show(context, failure.message);
       },
     );
   }
 
   void _resetLocalState() {
+    ref.read(productRegistrationDraftProvider.notifier).clear();
     _step = _RegistrationStep.method;
     _method = null;
     _recallAlert = true;
@@ -453,6 +532,37 @@ class _MethodStep extends StatelessWidget {
   }
 }
 
+class _DraftResumeCard extends StatelessWidget {
+  const _DraftResumeCard({required this.onResume, required this.onStartOver});
+
+  final VoidCallback onResume;
+  final VoidCallback onStartOver;
+
+  @override
+  Widget build(BuildContext context) {
+    return TevioCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('등록 중인 제품이 있어요', style: TevioTypography.titleLarge),
+          const SizedBox(height: TevioSpacing.xs),
+          Text(
+            '입력한 정보와 진행 상황을 저장해 두었어요. 이어서 등록할까요?',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: TevioSpacing.lg),
+          TevioButton(label: '이어서 등록하기', onPressed: onResume),
+          const SizedBox(height: TevioSpacing.sm),
+          Align(
+            alignment: Alignment.center,
+            child: TevioTextAction(label: '새로 시작하기', onPressed: onStartOver),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MethodTile extends StatelessWidget {
   const _MethodTile({
     required this.method,
@@ -497,6 +607,16 @@ class _AnalysisStep extends StatelessWidget {
   Widget build(BuildContext context) {
     if (failure != null) {
       final copy = _RegistrationFailureCopy.from(failure!);
+
+      if (failure == _RegistrationFailure.permissionDenied) {
+        return TevioPermissionRequest(
+          icon: Icons.camera_alt_outlined,
+          title: copy.title,
+          description: copy.description,
+          actionLabel: copy.action,
+          onRequest: onRetryPressed,
+        );
+      }
 
       return TevioErrorState(
         title: copy.title,
@@ -558,6 +678,8 @@ class _ProductInfoStep extends StatelessWidget {
     required this.purchaseStoreController,
     required this.showErrors,
     required this.onChanged,
+    required this.purchaseDate,
+    required this.onPurchaseDateChanged,
   });
 
   final _RegistrationMethod? method;
@@ -568,6 +690,8 @@ class _ProductInfoStep extends StatelessWidget {
   final TextEditingController purchaseStoreController;
   final bool showErrors;
   final VoidCallback onChanged;
+  final DateTime? purchaseDate;
+  final ValueChanged<DateTime?> onPurchaseDateChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -586,51 +710,45 @@ class _ProductInfoStep extends StatelessWidget {
         const SizedBox(height: TevioSpacing.sm),
         Text(helperText, style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: TevioSpacing.lg),
-        const _FieldLabel('제품명'),
-        TextField(
+        TevioTextField(
+          label: '제품명',
           controller: nameController,
           onChanged: (_) => onChanged(),
-          decoration: InputDecoration(
-            hintText: '예: 공기청정기',
-            errorText: _requiredErrorText(nameController, '제품명을 입력해 주세요.'),
-          ),
+          hintText: '예: 공기청정기',
+          errorText: _requiredErrorText(nameController, '제품명을 입력해 주세요.'),
         ),
         const SizedBox(height: TevioSpacing.md),
-        const _FieldLabel('제조사'),
-        TextField(
+        TevioTextField(
+          label: '제조사',
           controller: brandController,
           onChanged: (_) => onChanged(),
-          decoration: InputDecoration(
-            hintText: '예: ABC',
-            errorText: _requiredErrorText(brandController, '제조사를 입력해 주세요.'),
-          ),
+          hintText: '예: ABC',
+          errorText: _requiredErrorText(brandController, '제조사를 입력해 주세요.'),
         ),
         const SizedBox(height: TevioSpacing.md),
-        const _FieldLabel('모델번호'),
-        TextField(
+        TevioTextField(
+          label: '모델번호',
           controller: modelNumberController,
           onChanged: (_) => onChanged(),
-          decoration: InputDecoration(
-            hintText: '예: ABC-123',
-            errorText: _requiredErrorText(
-              modelNumberController,
-              '모델번호를 입력해 주세요.',
-            ),
-          ),
+          hintText: '예: ABC-123',
+          errorText: _modelNumberError(),
         ),
         const SizedBox(height: TevioSpacing.md),
-        const _FieldLabel('구매일'),
-        TextField(
-          controller: purchasedAtController,
-          onChanged: (_) => onChanged(),
-          decoration: const InputDecoration(hintText: '예: 2026.07.23'),
+        TevioDateField(
+          label: '구매일',
+          value: purchaseDate,
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+          onChanged: onPurchaseDateChanged,
+          helpText: '구매일을 선택하세요',
+          errorText: _purchaseDateError(),
         ),
         const SizedBox(height: TevioSpacing.md),
-        const _FieldLabel('구매처'),
-        TextField(
+        TevioTextField(
+          label: '구매처',
           controller: purchaseStoreController,
           onChanged: (_) => onChanged(),
-          decoration: const InputDecoration(hintText: '예: 브랜드 공식몰'),
+          hintText: '예: 브랜드 공식몰',
         ),
       ],
     );
@@ -642,6 +760,40 @@ class _ProductInfoStep extends StatelessWidget {
     }
 
     return message;
+  }
+
+  String? _modelNumberError() {
+    final requiredError = _requiredErrorText(
+      modelNumberController,
+      '모델번호를 입력해 주세요.',
+    );
+    if (requiredError != null) {
+      return requiredError;
+    }
+    if (showErrors &&
+        !RegExp(
+          r'^[A-Za-z0-9가-힣][A-Za-z0-9가-힣._-]{2,}$',
+        ).hasMatch(modelNumberController.text.trim())) {
+      return '모델번호를 3자 이상 입력해 주세요.';
+    }
+    return null;
+  }
+
+  String? _purchaseDateError() {
+    if (!showErrors || purchasedAtController.text.trim().isEmpty) {
+      return null;
+    }
+    final parts = purchasedAtController.text.split('.');
+    if (parts.length != 3) {
+      return '구매일을 선택해 주세요.';
+    }
+    final date = DateTime.tryParse(
+      '${parts[0]}-${parts[1].padLeft(2, '0')}-${parts[2].padLeft(2, '0')}',
+    );
+    if (date == null || date.isAfter(DateTime.now())) {
+      return '오늘 이전의 구매일을 선택해 주세요.';
+    }
+    return null;
   }
 }
 
@@ -660,8 +812,8 @@ class _RegistrationFailureCopy {
     return switch (failure) {
       _RegistrationFailure.permissionDenied => const _RegistrationFailureCopy(
         title: '카메라 권한이 필요해요',
-        description: '영수증을 촬영하려면 카메라 접근 권한을 허용해야 합니다.',
-        action: '권한 설정 확인',
+        description: '카메라를 허용하지 않아도 제품 정보를 직접 입력해 등록할 수 있어요.',
+        action: '직접 입력으로 계속',
       ),
       _RegistrationFailure.imageCanceled => const _RegistrationFailureCopy(
         title: '이미지 선택이 취소됐어요',
@@ -759,25 +911,25 @@ class _NotificationOptionsStep extends StatelessWidget {
         TevioCard(
           child: Column(
             children: [
-              SwitchListTile(
+              TevioSwitch(
                 value: recallAlert,
                 onChanged: onRecallChanged,
-                title: const Text('리콜과 무상수리'),
-                subtitle: const Text('안전 문제와 공식 조치가 감지되면 알려드려요.'),
+                label: '리콜과 무상수리',
+                description: '안전 문제와 공식 조치가 감지되면 알려드려요.',
               ),
               const Divider(height: TevioSpacing.xl),
-              SwitchListTile(
+              TevioSwitch(
                 value: warrantyAlert,
                 onChanged: onWarrantyChanged,
-                title: const Text('보증 만료'),
-                subtitle: const Text('무상보증 종료 전 필요한 시점에 알려드려요.'),
+                label: '보증 만료',
+                description: '무상보증 종료 전 필요한 시점에 알려드려요.',
               ),
               const Divider(height: TevioSpacing.xl),
-              SwitchListTile(
+              TevioSwitch(
                 value: returnAlert,
                 onChanged: onReturnChanged,
-                title: const Text('반품과 교환 가능 기간'),
-                subtitle: const Text('구매 이후 놓치기 쉬운 기한을 확인해요.'),
+                label: '반품과 교환 가능 기간',
+                description: '구매 이후 놓치기 쉬운 기한을 확인해요.',
               ),
             ],
           ),
@@ -823,20 +975,6 @@ class _RegisteringStep extends StatelessWidget {
           TevioInfoRow(label: '알림 설정', value: input.alertSummary),
         ],
       ),
-    );
-  }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: TevioSpacing.xs),
-      child: Text(text, style: Theme.of(context).textTheme.labelLarge),
     );
   }
 }

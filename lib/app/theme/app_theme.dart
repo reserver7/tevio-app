@@ -43,6 +43,9 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: TevioColors.surface,
+        constraints: const BoxConstraints(
+          minHeight: TevioDimensions.inputHeight,
+        ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: TevioSpacing.md,
           vertical: TevioSpacing.md,
@@ -59,10 +62,22 @@ class AppTheme {
           borderRadius: TevioRadius.mediumBorder,
           borderSide: const BorderSide(color: TevioColors.primary, width: 1.4),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: TevioRadius.mediumBorder,
+          borderSide: const BorderSide(color: TevioColors.danger),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: TevioRadius.mediumBorder,
+          borderSide: const BorderSide(color: TevioColors.danger, width: 1.4),
+        ),
+        helperStyle: TevioTypography.label.copyWith(
+          color: TevioColors.textSecondary,
+        ),
+        errorStyle: TevioTypography.label.copyWith(color: TevioColors.danger),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size.fromHeight(TevioDimensions.buttonHeight),
           backgroundColor: TevioColors.primary,
           foregroundColor: TevioColors.white,
           shape: const RoundedRectangleBorder(
@@ -75,7 +90,7 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size.fromHeight(TevioDimensions.buttonHeight),
           foregroundColor: TevioColors.primary,
           side: const BorderSide(color: TevioColors.border),
           shape: const RoundedRectangleBorder(
@@ -99,6 +114,64 @@ class AppTheme {
           }
           return TevioColors.divider;
         }),
+      ),
+    );
+  }
+
+  static ThemeData dark() {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: TevioColors.primary,
+      brightness: Brightness.dark,
+      primary: TevioColors.primary,
+      secondary: TevioColors.mint,
+      error: TevioColors.danger,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: TevioColors.darkBackground,
+      textTheme: TevioTypography.textTheme().apply(
+        bodyColor: TevioColors.white,
+        displayColor: TevioColors.white,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: TevioColors.darkBackground,
+        foregroundColor: TevioColors.white,
+        surfaceTintColor: TevioColors.transparent,
+        elevation: 0,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: TevioColors.darkSurface,
+        constraints: const BoxConstraints(
+          minHeight: TevioDimensions.inputHeight,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: TevioRadius.mediumBorder,
+          borderSide: BorderSide(color: TevioColors.darkBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: TevioRadius.mediumBorder,
+          borderSide: BorderSide(color: TevioColors.darkBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: TevioRadius.mediumBorder,
+          borderSide: const BorderSide(color: TevioColors.primary, width: 1.4),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: TevioRadius.mediumBorder,
+          borderSide: const BorderSide(color: TevioColors.danger),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: TevioRadius.mediumBorder,
+          borderSide: const BorderSide(color: TevioColors.danger, width: 1.4),
+        ),
+        helperStyle: TevioTypography.label.copyWith(
+          color: TevioColors.textTertiary,
+        ),
+        errorStyle: TevioTypography.label.copyWith(color: TevioColors.danger),
       ),
     );
   }

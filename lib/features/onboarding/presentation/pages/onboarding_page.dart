@@ -62,9 +62,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 children: [
                   const TevioLogo(variant: TevioLogoVariant.symbol, size: 32),
                   const Spacer(),
-                  TextButton(
+                  TevioTextAction(
+                    label: '건너뛰기',
                     onPressed: () => context.go('/login'),
-                    child: const Text('건너뛰기'),
                   ),
                 ],
               ),

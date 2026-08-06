@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../tokens/tevio_colors.dart';
+import '../tokens/tevio_spacing.dart';
+import '../tokens/tevio_theme_colors.dart';
 
 class TevioInfoRow extends StatelessWidget {
   const TevioInfoRow({super.key, required this.label, required this.value});
@@ -13,17 +14,23 @@ class TevioInfoRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 88,
+        Flexible(
+          flex: 4,
           child: Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: TevioColors.textSecondary),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: TevioThemeColors.secondaryText(context),
+            ),
           ),
         ),
+        const SizedBox(width: TevioSpacing.md),
         Expanded(
-          child: Text(value, style: Theme.of(context).textTheme.bodyLarge),
+          flex: 6,
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
         ),
       ],
     );

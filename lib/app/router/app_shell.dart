@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/products/presentation/state/product_registration_session.dart';
+import '../../features/notifications/presentation/state/notification_queries.dart';
+import '../../features/products/presentation/state/product_queries.dart';
+import '../../features/products/presentation/state/product_update_command.dart';
 import '../../features/settings/presentation/state/my_tab_session.dart';
 import '../../shared/design_system/tevio_design_system.dart';
 
@@ -16,32 +18,50 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(productSummariesQueryProvider, (_, products) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          ref.read(notificationCommandProvider).syncProductAlerts(products);
+          for (final product in products) {
+            if (product.needsRecheck && product.status == RightsStatus.safe) {
+              ref.read(productUpdateCommandProvider).recheck(product);
+            }
+          }
+        }
+      });
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) {
+        ref
+            .read(notificationCommandProvider)
+            .syncProductAlerts(ref.read(productSummariesQueryProvider));
+      }
+    });
+
     final currentIndex = _currentIndexFor(location);
     final showBottomNavigation = _tabLocations.contains(location);
 
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: showBottomNavigation
-          ? DecoratedBox(
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: TevioColors.divider)),
-              ),
-              child: TevioBottomNavigation(
-                currentIndex: currentIndex,
-                onDestinationSelected: (index) {
-                  if (index == 2) {
-                    ref
-                        .read(productRegistrationSessionProvider.notifier)
-                        .reset();
-                  }
-                  if (index == 3) {
-                    ref.read(myTabSessionProvider.notifier).reset();
-                  }
-                  context.go(_tabLocations[index]);
-                },
-              ),
-            )
-          : null,
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
+        body: child,
+        bottomNavigationBar: showBottomNavigation
+            ? DecoratedBox(
+                decoration: const BoxDecoration(
+                  border: Border(top: BorderSide(color: TevioColors.divider)),
+                ),
+                child: TevioBottomNavigation(
+                  currentIndex: currentIndex,
+                  onDestinationSelected: (index) {
+                    if (index == 3) {
+                      ref.read(myTabSessionProvider.notifier).reset();
+                    }
+                    context.go(_tabLocations[index]);
+                  },
+                ),
+              )
+            : null,
+      ),
     );
   }
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../tokens/tevio_colors.dart';
-import '../tokens/tevio_typography.dart';
+import 'tevio_operational_patterns.dart';
 
 class TevioSectionHeader extends StatelessWidget {
   const TevioSectionHeader({
@@ -23,13 +22,7 @@ class TevioSectionHeader extends StatelessWidget {
           child: Text(title, style: Theme.of(context).textTheme.titleMedium),
         ),
         if (actionLabel != null)
-          TextButton(
-            onPressed: onActionPressed,
-            child: Text(
-              actionLabel!,
-              style: TevioTypography.label.copyWith(color: TevioColors.primary),
-            ),
-          ),
+          TevioTextAction(label: actionLabel!, onPressed: onActionPressed),
       ],
     );
   }

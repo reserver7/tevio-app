@@ -115,17 +115,12 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     final commands = ref.read(notificationCommandProvider);
     commands.remove(notification.id);
 
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: const Text('알림을 삭제했어요'),
-          action: SnackBarAction(
-            label: '되돌리기',
-            onPressed: () => commands.restore(notification),
-          ),
-        ),
-      );
+    TevioSnackbar.show(
+      context,
+      '알림을 삭제했어요',
+      actionLabel: '되돌리기',
+      onAction: () => commands.restore(notification),
+    );
   }
 
   String _targetRouteFor(TevioNotification notification) {
@@ -202,62 +197,20 @@ class _NotificationFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Row(
       children: [
-        _NotificationFilterChip(
-          label: '전체',
-          selected: !showUnreadOnly,
-          onTap: () => onChanged(false),
-        ),
-        const SizedBox(width: TevioSpacing.xs),
-        _NotificationFilterChip(
-          label: '읽지 않음 $unreadCount',
-          selected: showUnreadOnly,
-          onTap: () => onChanged(true),
-        ),
-        const Spacer(),
-        TextButton(
-          onPressed: onMarkAllAsRead,
-          child: Text(
-            '모두 읽음',
-            style: textTheme.labelLarge?.copyWith(
-              color: onMarkAllAsRead == null
-                  ? TevioColors.textTertiary
-                  : TevioColors.primary,
-              fontWeight: FontWeight.w800,
-            ),
+        Expanded(
+          child: TevioSegmentedControl<bool>(
+            items: const [false, true],
+            selected: showUnreadOnly,
+            onChanged: onChanged,
+            labelBuilder: (unreadOnly) =>
+                unreadOnly ? '읽지 않음 $unreadCount' : '전체',
           ),
         ),
+        const SizedBox(width: TevioSpacing.sm),
+        TevioTextAction(label: '모두 읽음', onPressed: onMarkAllAsRead),
       ],
-    );
-  }
-}
-
-class _NotificationFilterChip extends StatelessWidget {
-  const _NotificationFilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ActionChip(
-      label: Text(label),
-      onPressed: onTap,
-      labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-        color: selected ? TevioColors.white : TevioColors.textSecondary,
-        fontWeight: FontWeight.w800,
-      ),
-      backgroundColor: selected ? TevioColors.primary : TevioColors.white,
-      side: const BorderSide(color: TevioColors.divider),
-      shape: const RoundedRectangleBorder(borderRadius: TevioRadius.fullBorder),
     );
   }
 }

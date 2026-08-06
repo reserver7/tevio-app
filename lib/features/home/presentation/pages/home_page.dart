@@ -55,7 +55,25 @@ class _HomeContent extends StatelessWidget {
       padding: const EdgeInsets.all(TevioSpacing.lg),
       children: [
         if (snapshot.presentationType != _HomePresentationType.empty)
-          _TodayStatusCard(snapshot: snapshot),
+          AnimatedSwitcher(
+            duration: TevioMotion.normal,
+            switchInCurve: TevioMotion.standardCurve,
+            switchOutCurve: TevioMotion.standardCurve,
+            transitionBuilder: (child, animation) {
+              final offset = Tween<Offset>(
+                begin: const Offset(0, 0.03),
+                end: Offset.zero,
+              ).animate(animation);
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(position: offset, child: child),
+              );
+            },
+            child: _TodayStatusCard(
+              key: ValueKey('${snapshot.status.name}-${snapshot.title}'),
+              snapshot: snapshot,
+            ),
+          ),
         if (snapshot.nextActions.isNotEmpty) ...[
           const SizedBox(height: TevioSpacing.xl),
           TevioSectionHeader(title: snapshot.secondarySectionTitle),
@@ -71,7 +89,9 @@ class _HomeContent extends StatelessWidget {
           const SizedBox(height: TevioSpacing.sm),
           _ProcessingCard(item: snapshot.processing!),
         ],
-        if (snapshot.productSummary != null) ...[
+        if (snapshot.productSummary != null &&
+            snapshot.nextActions.isEmpty &&
+            snapshot.processing == null) ...[
           const SizedBox(height: TevioSpacing.xl),
           TevioSectionHeader(
             title: '내 제품 요약',
@@ -80,22 +100,6 @@ class _HomeContent extends StatelessWidget {
           ),
           const SizedBox(height: TevioSpacing.sm),
           _ProductSummary(summary: snapshot.productSummary!),
-        ],
-        if (snapshot.recentChecks.isNotEmpty) ...[
-          const SizedBox(height: TevioSpacing.xl),
-          const TevioSectionHeader(title: '테비오가 최근 확인했어요'),
-          const SizedBox(height: TevioSpacing.sm),
-          TevioCard(
-            child: Column(
-              children: [
-                for (final check in snapshot.recentChecks.take(2)) ...[
-                  _RecentCheckRow(check: check),
-                  if (check != snapshot.recentChecks.take(2).last)
-                    const Divider(height: TevioSpacing.xl),
-                ],
-              ],
-            ),
-          ),
         ],
         if (snapshot.contextualCta != null) ...[
           const SizedBox(height: TevioSpacing.xl),
@@ -114,103 +118,36 @@ class _NotificationBell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final icon = const Icon(Icons.notifications_none_outlined);
-
-    return IconButton(
+    return TevioIconButton(
       tooltip: '알림',
       onPressed: onPressed,
       icon: unreadCount == 0
-          ? icon
-          : Badge(
-              backgroundColor: TevioColors.danger,
-              textColor: TevioColors.white,
-              label: Text(unreadCount > 9 ? '9+' : '$unreadCount'),
-              child: icon,
-            ),
+          ? Icons.notifications_none_outlined
+          : Icons.notifications_outlined,
+      variant: unreadCount == 0
+          ? TevioIconButtonVariant.plain
+          : TevioIconButtonVariant.tinted,
     );
   }
 }
 
 class _TodayStatusCard extends StatelessWidget {
-  const _TodayStatusCard({required this.snapshot});
+  const _TodayStatusCard({super.key, required this.snapshot});
 
   final _HomeSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    final eyebrow = snapshot.eyebrow;
-
-    return TevioCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              TevioStatusBadge(status: snapshot.status),
-              if (eyebrow != null) ...[
-                const SizedBox(width: TevioSpacing.xs),
-                Expanded(
-                  child: Text(
-                    eyebrow,
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: TevioSpacing.md),
-          Text(
-            snapshot.title,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: TevioSpacing.xs),
-          Text(
-            snapshot.description,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          if (snapshot.summary != null) ...[
-            const SizedBox(height: TevioSpacing.md),
-            _SummaryPill(label: snapshot.summary!, status: snapshot.status),
-          ],
-          if (snapshot.primaryAction != null) ...[
-            const SizedBox(height: TevioSpacing.lg),
-            TevioButton(
-              label: snapshot.primaryAction!.ctaLabel,
-              icon: Icons.arrow_forward_outlined,
-              onPressed: () => context.go(snapshot.primaryAction!.route),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _SummaryPill extends StatelessWidget {
-  const _SummaryPill({required this.label, required this.status});
-
-  final String label;
-  final RightsStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: status.background,
-        borderRadius: TevioRadius.fullBorder,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TevioSpacing.sm,
-          vertical: TevioSpacing.xs,
-        ),
-        child: Text(
-          label,
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(color: status.foreground),
-        ),
-      ),
+    return TevioActionCard(
+      status: snapshot.status,
+      eyebrow: snapshot.eyebrow,
+      title: snapshot.title,
+      description: snapshot.description,
+      supportingText: snapshot.summary,
+      actionLabel: snapshot.primaryAction?.ctaLabel,
+      onPressed: snapshot.primaryAction == null
+          ? null
+          : () => context.go(snapshot.primaryAction!.route),
     );
   }
 }
@@ -222,12 +159,12 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TevioRightsCard(
+    return TevioActionCard(
       status: action.status,
-      productName: action.productName,
+      eyebrow: action.productName,
       title: action.title,
       description: action.reason,
-      dueText: action.dueText,
+      supportingText: action.dueText,
       actionLabel: action.ctaLabel,
       onPressed: () => context.go(action.route),
     );
@@ -241,13 +178,12 @@ class _ProcessingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TevioCard(
-      child: _InfoRow(
-        status: RightsStatus.processing,
-        title: item.title,
-        description: item.description,
-        meta: item.meta,
-      ),
+    return TevioActionCard(
+      status: RightsStatus.processing,
+      title: item.title,
+      description: item.description,
+      supportingText: item.meta,
+      compact: true,
     );
   }
 }
@@ -259,30 +195,13 @@ class _ProductSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TevioCard(
-      child: _InfoRow(
-        status: RightsStatus.safe,
-        title: '전체 ${summary.totalCount}개',
-        description:
-            '정상 ${summary.safeCount}개 · 확인 필요 ${summary.actionRequiredCount}개',
-        meta: summary.highlight,
-      ),
-    );
-  }
-}
-
-class _RecentCheckRow extends StatelessWidget {
-  const _RecentCheckRow({required this.check});
-
-  final _RecentCheck check;
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoRow(
-      status: check.status,
-      title: check.title,
-      description: check.description,
-      meta: check.checkedAt,
+    return TevioActionCard(
+      status: RightsStatus.safe,
+      title: '전체 ${summary.totalCount}개',
+      description:
+          '정상 ${summary.safeCount}개 · 확인 필요 ${summary.actionRequiredCount}개',
+      supportingText: summary.highlight,
+      compact: true,
     );
   }
 }
@@ -294,78 +213,11 @@ class _ContextualCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TevioCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(cta.title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: TevioSpacing.xs),
-          Text(cta.description, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: TevioSpacing.lg),
-          TevioButton(
-            label: cta.label,
-            icon: cta.icon,
-            onPressed: () => context.go(cta.route),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.status,
-    required this.title,
-    required this.description,
-    required this.meta,
-  });
-
-  final RightsStatus status;
-  final String title;
-  final String description;
-  final String meta;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _StatusIcon(status: status),
-        const SizedBox(width: TevioSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: TevioSpacing.xxs),
-              Text(description, style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: TevioSpacing.xs),
-              Text(meta, style: Theme.of(context).textTheme.labelMedium),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatusIcon extends StatelessWidget {
-  const _StatusIcon({required this.status});
-
-  final RightsStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: status.background,
-        borderRadius: TevioRadius.mediumBorder,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(TevioSpacing.sm),
-        child: Icon(status.icon, color: status.foreground),
-      ),
+    return TevioActionCard(
+      title: cta.title,
+      description: cta.description,
+      actionLabel: cta.label,
+      onPressed: () => context.go(cta.route),
     );
   }
 }

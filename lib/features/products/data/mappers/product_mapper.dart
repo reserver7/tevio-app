@@ -22,6 +22,7 @@ extension ProductDtoMapper on ProductDto {
       recallAlertEnabled: recallAlertEnabled,
       warrantyAlertEnabled: warrantyAlertEnabled,
       returnAlertEnabled: returnAlertEnabled,
+      lastCheckedAt: lastCheckedAt,
     );
   }
 }
@@ -44,6 +45,7 @@ extension ProductSummaryMapper on ProductSummary {
       recallAlertEnabled: recallAlertEnabled,
       warrantyAlertEnabled: warrantyAlertEnabled,
       returnAlertEnabled: returnAlertEnabled,
+      lastCheckedAt: lastCheckedAt,
     );
   }
 }

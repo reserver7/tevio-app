@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/config/app_environment.dart';
 import '../../../../shared/design_system/tevio_design_system.dart';
 import '../state/my_tab_session.dart';
+import '../state/theme_mode.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -26,11 +27,11 @@ class SettingsPage extends ConsumerWidget {
             TevioCard(
               child: Column(
                 children: [
-                  _SettingsRow(icon: Icons.person_outline, title: '내 프로필'),
+                  TevioListRow(icon: Icons.person_outline, title: '내 프로필'),
                   Divider(height: TevioSpacing.xl),
-                  _SettingsRow(icon: Icons.groups_outlined, title: '가족 관리'),
+                  TevioListRow(icon: Icons.groups_outlined, title: '가족 관리'),
                   Divider(height: TevioSpacing.xl),
-                  _SettingsRow(
+                  TevioListRow(
                     icon: Icons.privacy_tip_outlined,
                     title: '개인정보 관리',
                   ),
@@ -43,13 +44,18 @@ class SettingsPage extends ConsumerWidget {
             TevioCard(
               child: Column(
                 children: [
-                  _SettingsRow(
+                  TevioListRow(
                     icon: Icons.notifications_outlined,
                     title: '알림 설정',
                     onTap: () => context.push('/settings/notifications'),
                   ),
                   Divider(height: TevioSpacing.xl),
-                  _SettingsRow(icon: Icons.bedtime_outlined, title: '조용한 시간'),
+                  TevioListRow(
+                    icon: Icons.brightness_6_outlined,
+                    title: '화면 설정',
+                    value: _themeModeLabel(ref.watch(themeModeProvider)),
+                    onTap: () => _showThemeModeSheet(context, ref),
+                  ),
                 ],
               ),
             ),
@@ -59,30 +65,30 @@ class SettingsPage extends ConsumerWidget {
             TevioCard(
               child: Column(
                 children: [
-                  const _SettingsRow(
+                  const TevioListRow(
                     icon: Icons.support_agent_outlined,
                     title: '고객센터',
                   ),
                   const Divider(height: TevioSpacing.xl),
-                  const _SettingsRow(
+                  const TevioListRow(
                     icon: Icons.campaign_outlined,
                     title: '공지사항',
                   ),
                   const Divider(height: TevioSpacing.xl),
-                  const _SettingsRow(
+                  const TevioListRow(
                     icon: Icons.description_outlined,
                     title: '이용약관',
                   ),
                   const Divider(height: TevioSpacing.xl),
-                  const _SettingsRow(
+                  const TevioListRow(
                     icon: Icons.policy_outlined,
                     title: '개인정보처리방침',
                   ),
                   const Divider(height: TevioSpacing.xl),
-                  const _SettingsRow(
+                  const TevioListRow(
                     icon: Icons.info_outline,
                     title: '앱 정보',
-                    trailing: '1.0.0',
+                    value: '1.0.0',
                   ),
                   const Divider(height: TevioSpacing.xl),
                   TevioInfoRow(label: '환경', value: environment.name),
@@ -95,12 +101,12 @@ class SettingsPage extends ConsumerWidget {
             const TevioCard(
               child: Column(
                 children: [
-                  _SettingsRow(icon: Icons.logout, title: '로그아웃'),
+                  TevioListRow(icon: Icons.logout, title: '로그아웃'),
                   Divider(height: TevioSpacing.xl),
-                  _SettingsRow(
+                  TevioListRow(
                     icon: Icons.delete_outline,
                     title: '회원 탈퇴',
-                    isDanger: true,
+                    isDestructive: true,
                   ),
                 ],
               ),
@@ -112,50 +118,32 @@ class SettingsPage extends ConsumerWidget {
   }
 }
 
-class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({
-    required this.icon,
-    required this.title,
-    this.trailing,
-    this.isDanger = false,
-    this.onTap,
-  });
+String _themeModeLabel(ThemeMode mode) => switch (mode) {
+  ThemeMode.system => '기기 설정',
+  ThemeMode.light => '라이트',
+  ThemeMode.dark => '다크',
+};
 
-  final IconData icon;
-  final String title;
-  final String? trailing;
-  final bool isDanger;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isDanger ? TevioColors.danger : TevioColors.primary;
-    final textColor = isDanger ? TevioColors.danger : TevioColors.textPrimary;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: TevioRadius.mediumBorder,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: TevioSpacing.xs),
-        child: Row(
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(width: TevioSpacing.md),
-            Expanded(
-              child: Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: textColor),
-              ),
+Future<void> _showThemeModeSheet(BuildContext context, WidgetRef ref) async {
+  final current = ref.read(themeModeProvider);
+  final selected = await TevioSheet.show<ThemeMode>(
+    context,
+    builder: (context) => TevioSheet(
+      title: '화면 설정',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final mode in ThemeMode.values)
+            TevioRadioControl<ThemeMode>(
+              value: mode,
+              groupValue: current,
+              label: _themeModeLabel(mode),
+              onChanged: (value) => Navigator.of(context).pop(value),
             ),
-            if (trailing != null)
-              Text(trailing!, style: Theme.of(context).textTheme.bodyMedium)
-            else
-              const Icon(Icons.chevron_right, color: TevioColors.textTertiary),
-          ],
-        ),
+          const SizedBox(height: TevioSpacing.sm),
+        ],
       ),
-    );
-  }
+    ),
+  );
+  if (selected != null) ref.read(themeModeProvider.notifier).setMode(selected);
 }

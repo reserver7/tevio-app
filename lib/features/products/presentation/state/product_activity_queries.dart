@@ -25,4 +25,14 @@ class ProductActivityCommand {
   void record(ProductActivity activity) {
     _ref.read(productActivityLogProvider.notifier).record(activity);
   }
+
+  List<ProductActivity> removeForProduct(String productId) {
+    return _ref
+        .read(productActivityLogProvider.notifier)
+        .removeForProduct(productId);
+  }
+
+  void restoreMany(List<ProductActivity> activities) {
+    _ref.read(productActivityLogProvider.notifier).restoreMany(activities);
+  }
 }

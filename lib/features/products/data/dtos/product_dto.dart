@@ -15,6 +15,7 @@ class ProductDto {
     this.recallAlertEnabled = true,
     this.warrantyAlertEnabled = true,
     this.returnAlertEnabled = true,
+    this.lastCheckedAt,
   });
 
   final String id;
@@ -32,4 +33,5 @@ class ProductDto {
   final bool recallAlertEnabled;
   final bool warrantyAlertEnabled;
   final bool returnAlertEnabled;
+  final DateTime? lastCheckedAt;
 }
