@@ -14,7 +14,7 @@ class AppShell extends ConsumerWidget {
   final String location;
   final Widget child;
 
-  static const _tabLocations = ['/home', '/products', '/register', '/settings'];
+  static const _tabLocations = ['/home', '/products', '/settings'];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -53,7 +53,7 @@ class AppShell extends ConsumerWidget {
                 child: TevioBottomNavigation(
                   currentIndex: currentIndex,
                   onDestinationSelected: (index) {
-                    if (index == 3) {
+                    if (index == 2) {
                       ref.read(myTabSessionProvider.notifier).reset();
                     }
                     context.go(_tabLocations[index]);
@@ -69,11 +69,8 @@ class AppShell extends ConsumerWidget {
     if (location.startsWith('/products')) {
       return 1;
     }
-    if (location.startsWith('/register')) {
-      return 2;
-    }
     if (location.startsWith('/settings')) {
-      return 3;
+      return 2;
     }
     return 0;
   }

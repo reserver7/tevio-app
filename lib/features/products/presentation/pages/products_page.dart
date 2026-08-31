@@ -20,6 +20,14 @@ class ProductsPage extends ConsumerStatefulWidget {
 class _ProductsPageState extends ConsumerState<ProductsPage> {
   _ProductFilter _filter = _ProductFilter.all;
   _ProductSort _sort = _ProductSort.priority;
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,68 +40,118 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
         automaticallyImplyLeading: false,
         actions: [
           TevioIconButton(
-            tooltip: '제품 보기 설정',
-            icon: Icons.tune,
-            onPressed: () => _showViewOptions(context),
+            tooltip: '제품 등록',
+            icon: Icons.add,
+            onPressed: () => context.push('/register'),
           ),
         ],
       ),
-      body: SafeArea(
-        child: visibleProducts.isEmpty
-            ? TevioEmptyState(
-                title: _filter == _ProductFilter.all
-                    ? '등록된 제품이 없어요'
-                    : '조건에 맞는 제품이 없어요',
-                description: _filter == _ProductFilter.all
-                    ? '제품을 등록하면 리콜, 보증, 반품·교환 정보를 한곳에서 관리할 수 있어요.'
-                    : '보기 설정에서 다른 상태를 선택해 주세요.',
-                actionLabel: _filter == _ProductFilter.all ? '제품 등록하기' : null,
-                onActionPressed: _filter == _ProductFilter.all
-                    ? () => context.go('/register')
-                    : null,
-              )
-            : ListView(
-                key: const PageStorageKey('products-scroll'),
-                padding: const EdgeInsets.fromLTRB(
-                  TevioSpacing.lg,
-                  TevioSpacing.sm,
-                  TevioSpacing.lg,
-                  TevioSpacing.xl,
-                ),
-                children: [
-                  if (_filter != _ProductFilter.all ||
-                      _sort != _ProductSort.priority) ...[
-                    _ActiveViewSummary(
-                      label: '${_filter.label} · ${_sort.label}',
-                      onReset: () {
-                        setState(() {
-                          _filter = _ProductFilter.all;
-                          _sort = _ProductSort.priority;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: TevioSpacing.md),
-                  ],
-                  for (final product in visibleProducts) ...[
-                    TevioProductSummaryCard(
-                      name: product.name,
-                      identity: '${product.brand} · ${product.modelNumber}',
-                      status: product.status,
-                      summary: product.statusSummary,
-                      primaryLabel: product.recommendedAction,
-                      onPrimaryPressed: () =>
-                          context.push('/products/${product.id}'),
-                    ),
-                    const SizedBox(height: TevioSpacing.md),
-                  ],
-                ],
+      body: TevioPageScrollView(
+        storageKey: 'products-scroll',
+        children: [
+          TevioPageIntro(
+            eyebrow: '내 제품',
+            title: '등록한 제품 ${products.length}개',
+            description: '제품을 검색하거나 상태별로 모아볼 수 있어요.',
+          ),
+          const SizedBox(height: TevioSpacing.lg),
+          TevioTextField(
+            controller: _searchController,
+            hintText: '제품명, 제조사, 모델번호 검색',
+            textInputAction: TextInputAction.search,
+            onChanged: (value) => setState(() => _query = value.trim()),
+            onSubmitted: (value) => setState(() => _query = value.trim()),
+            prefixIcon: const Icon(Icons.search_outlined),
+            suffixIcon: _query.isEmpty
+                ? null
+                : TevioIconButton(
+                    tooltip: '검색어 지우기',
+                    icon: Icons.close,
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _query = '');
+                    },
+                  ),
+          ),
+          const SizedBox(height: TevioSpacing.md),
+          Row(
+            children: [
+              Text(
+                '${visibleProducts.length}개 제품',
+                style: TevioTypography.titleMedium,
               ),
+              const Spacer(),
+              TevioTextAction(
+                label:
+                    _filter == _ProductFilter.all &&
+                        _sort == _ProductSort.priority
+                    ? '보기 설정'
+                    : '설정됨',
+                onPressed: () => _showViewOptions(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: TevioSpacing.md),
+          if (visibleProducts.isEmpty)
+            TevioEmptyState(
+              title: _query.isNotEmpty
+                  ? '검색 결과가 없어요'
+                  : _filter == _ProductFilter.all
+                  ? '등록된 제품이 없어요'
+                  : '조건에 맞는 제품이 없어요',
+              description: _query.isNotEmpty
+                  ? '제품명, 제조사 또는 모델번호를 확인해 다시 검색해 보세요.'
+                  : _filter == _ProductFilter.all
+                  ? '제품을 등록하면 리콜, 보증, 반품·교환 정보를 한곳에서 관리할 수 있어요.'
+                  : '보기 설정에서 다른 상태를 선택해 주세요.',
+              actionLabel: _query.isNotEmpty
+                  ? '검색어 지우기'
+                  : _filter == _ProductFilter.all
+                  ? '제품 등록하기'
+                  : null,
+              onActionPressed: _query.isNotEmpty
+                  ? () {
+                      _searchController.clear();
+                      setState(() => _query = '');
+                    }
+                  : _filter == _ProductFilter.all
+                  ? () => context.go('/register')
+                  : null,
+            ),
+          if (_filter != _ProductFilter.all ||
+              _sort != _ProductSort.priority) ...[
+            _ActiveViewSummary(
+              label: '${_filter.label} · ${_sort.label}',
+              onReset: () {
+                setState(() {
+                  _filter = _ProductFilter.all;
+                  _sort = _ProductSort.priority;
+                });
+              },
+            ),
+            const SizedBox(height: TevioSpacing.md),
+          ],
+          for (final product in visibleProducts) ...[
+            _ProductLibraryRow(
+              product: product,
+              onTap: () => context.push('/products/${product.id}'),
+            ),
+            if (product != visibleProducts.last) const Divider(height: 1),
+          ],
+        ],
       ),
     );
   }
 
   List<ProductSummary> _visibleProducts(List<ProductSummary> products) {
     final filtered = products.where((product) {
+      final query = _query.toLowerCase();
+      if (query.isNotEmpty &&
+          !product.name.toLowerCase().contains(query) &&
+          !product.brand.toLowerCase().contains(query) &&
+          !product.modelNumber.toLowerCase().contains(query)) {
+        return false;
+      }
       return switch (_filter) {
         _ProductFilter.all => true,
         _ProductFilter.attention =>
@@ -142,61 +200,53 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
         builder: (context, setModalState) {
           return TevioSheet(
             title: '제품 보기',
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.66,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            footer: TevioButton(
+              label: '적용',
+              onPressed: () =>
+                  Navigator.of(context).pop((selectedFilter, selectedSort)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '필요한 제품을 빠르게 찾을 수 있도록 보기 방식을 정하세요.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: TevioSpacing.xl),
+                Text('상태', style: TevioTypography.titleMedium),
+                const SizedBox(height: TevioSpacing.sm),
+                Wrap(
+                  spacing: TevioSpacing.xs,
+                  runSpacing: TevioSpacing.xs,
                   children: [
-                    Text(
-                      '필요한 제품을 빠르게 찾을 수 있도록 보기 방식을 정하세요.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: TevioSpacing.xl),
-                    Text('상태', style: TevioTypography.titleMedium),
-                    const SizedBox(height: TevioSpacing.sm),
-                    Wrap(
-                      spacing: TevioSpacing.xs,
-                      runSpacing: TevioSpacing.xs,
-                      children: [
-                        for (final filter in _ProductFilter.values)
-                          TevioChoiceChip(
-                            label: filter.label,
-                            selected: selectedFilter == filter,
-                            onSelected: (_) {
-                              setModalState(() => selectedFilter = filter);
-                            },
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: TevioSpacing.xl),
-                    Text('정렬', style: TevioTypography.titleMedium),
-                    const SizedBox(height: TevioSpacing.sm),
-                    Column(
-                      children: [
-                        for (final sort in _ProductSort.values)
-                          _SortOptionTile(
-                            sort: sort,
-                            groupValue: selectedSort,
-                            onChanged: (value) {
-                              setModalState(() => selectedSort = value);
-                            },
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: TevioSpacing.xl),
-                    TevioButton(
-                      label: '적용',
-                      onPressed: () => Navigator.of(
-                        context,
-                      ).pop((selectedFilter, selectedSort)),
-                    ),
+                    for (final filter in _ProductFilter.values)
+                      TevioChoiceChip(
+                        label: filter.label,
+                        selected: selectedFilter == filter,
+                        onSelected: (_) {
+                          setModalState(() => selectedFilter = filter);
+                        },
+                      ),
                   ],
                 ),
-              ),
+                const SizedBox(height: TevioSpacing.xl),
+                Text('정렬', style: TevioTypography.titleMedium),
+                const SizedBox(height: TevioSpacing.sm),
+                Column(
+                  children: [
+                    for (final sort in _ProductSort.values)
+                      _SortOptionTile(
+                        sort: sort,
+                        groupValue: selectedSort,
+                        onChanged: (value) {
+                          setModalState(() => selectedSort = value);
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: TevioSpacing.sm),
+              ],
             ),
           );
         },
@@ -211,6 +261,109 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
       _filter = result.$1;
       _sort = result.$2;
     });
+  }
+}
+
+class _ProductLibraryRow extends StatelessWidget {
+  const _ProductLibraryRow({required this.product, required this.onTap});
+
+  final ProductSummary product;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label:
+          '${product.name}, ${product.brand}, ${product.modelNumber}, ${product.status.label}',
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: TevioSpacing.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _ProductMonogram(product: product),
+              const SizedBox(width: TevioSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: TevioSpacing.xxs),
+                    Text(
+                      '${product.brand} · ${product.modelNumber}',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                    const SizedBox(height: TevioSpacing.sm),
+                    Row(
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: product.status.foreground,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: TevioSpacing.xs),
+                        Expanded(
+                          child: Text(
+                            product.statusSummary,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: TevioSpacing.sm),
+              Text(
+                product.status.label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: product.status.foreground,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProductMonogram extends StatelessWidget {
+  const _ProductMonogram({required this.product});
+
+  final ProductSummary product;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 56,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: product.status.background,
+        borderRadius: TevioRadius.mediumBorder,
+      ),
+      child: Text(
+        product.name.trim().isEmpty
+            ? '?'
+            : product.name.trim().characters.first,
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          color: product.status.foreground,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
   }
 }
 

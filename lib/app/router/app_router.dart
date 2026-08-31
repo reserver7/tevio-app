@@ -8,6 +8,7 @@ import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/products/presentation/pages/product_detail_page.dart';
 import '../../features/products/presentation/pages/product_registration_page.dart';
 import '../../features/products/presentation/pages/products_page.dart';
+import '../../features/recalls/presentation/pages/public_recall_lookup_page.dart';
 import '../../features/settings/presentation/pages/notification_settings_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
@@ -45,28 +46,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
-            path: '/register',
-            builder: (context, state) => const ProductRegistrationPage(),
-          ),
-          GoRoute(
             path: '/settings',
             builder: (context, state) => const SettingsPage(),
-            routes: [
-              GoRoute(
-                path: 'notifications',
-                builder: (context, state) => const NotificationSettingsPage(),
-              ),
-            ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const ProductRegistrationPage(),
       ),
       GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
+        path: '/settings/notifications',
+        builder: (context, state) => const NotificationSettingsPage(),
+      ),
+      GoRoute(
         path: '/notification-products/:id',
         builder: (context, state) => const ProductDetailPage(),
+      ),
+      GoRoute(
+        path: '/recalls/public',
+        builder: (context, state) => const PublicRecallLookupPage(),
       ),
     ],
   );

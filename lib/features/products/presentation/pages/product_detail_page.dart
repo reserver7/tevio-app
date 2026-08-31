@@ -69,128 +69,126 @@ class ProductDetailPage extends ConsumerWidget {
               )
             : null,
       ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(TevioSpacing.lg),
-          children: [
-            _ProductHeader(product: product),
-            const SizedBox(height: TevioSpacing.xl),
-            _PrimaryActionPanel(
-              status: product.status,
-              title: detail!.primaryTitle,
-              description: product.statusSummary,
-              actionLabel: product.recommendedAction,
-              onTap:
-                  product.status == RightsStatus.unknown &&
-                      product.recommendedAction == '다시 확인하기'
-                  ? () => _retryProductCheck(context, ref, product)
-                  : product.status == RightsStatus.unknown
-                  ? () => _showProductEditSheet(context, ref, product)
-                  : () => _showRightsActionSheet(
-                      context,
-                      ref,
-                      product,
-                      detail.primaryAction,
-                    ),
-            ),
-            const SizedBox(height: TevioSpacing.xl),
-            const TevioSectionHeader(title: '권리 상태'),
-            const SizedBox(height: TevioSpacing.sm),
-            TevioCard(
-              padding: const EdgeInsets.symmetric(
-                horizontal: TevioSpacing.md,
-                vertical: TevioSpacing.xs,
-              ),
-              child: Column(
-                children: [
-                  for (final item in detail.rights) ...[
-                    _RightsStatusRow(
-                      item: item,
-                      onTap: () => _showRightsActionSheet(
-                        context,
-                        ref,
-                        product,
-                        item.action,
-                      ),
-                    ),
-                    if (item != detail.rights.last)
-                      const Divider(height: TevioSpacing.xl),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: TevioSpacing.xl),
-            TevioSectionHeader(
-              title: '제품 정보',
-              actionLabel: '수정',
-              onActionPressed: () =>
-                  _showProductEditSheet(context, ref, product),
-            ),
-            const SizedBox(height: TevioSpacing.sm),
-            TevioCard(
-              padding: const EdgeInsets.all(TevioSpacing.md),
-              child: Column(
-                children: [
-                  TevioInfoRow(label: '구매일', value: product.purchasedAt),
-                  const Divider(height: TevioSpacing.xl),
-                  TevioInfoRow(label: '구매처', value: product.purchaseStore),
-                  const Divider(height: TevioSpacing.xl),
-                  TevioInfoRow(label: '영수증', value: product.receiptStatus),
-                  const Divider(height: TevioSpacing.xl),
-                  TevioInfoRow(
-                    label: '마지막 확인',
-                    value: product.lastCheckedAt == null
-                        ? '확인 기록 없음'
-                        : product.needsRecheck
-                        ? '다시 확인 필요'
-                        : '최근 확인됨',
+      body: TevioPageScrollView(
+        children: [
+          TevioProductIdentity(
+            name: product.name,
+            brand: product.brand,
+            modelNumber: product.modelNumber,
+            status: product.status,
+          ),
+          const SizedBox(height: TevioSpacing.xl),
+          TevioDecisionPanel(
+            status: product.status,
+            title: detail!.primaryTitle,
+            reason: product.statusSummary,
+            deadline: detail.primaryDueText,
+            contextLabel: _decisionContext(product.status),
+            actionLabel: product.recommendedAction,
+            onPressed:
+                product.status == RightsStatus.unknown &&
+                    product.recommendedAction == '다시 확인하기'
+                ? () => _retryProductCheck(context, ref, product)
+                : product.status == RightsStatus.unknown
+                ? () => _showProductEditSheet(context, ref, product)
+                : () => _showRightsActionSheet(
+                    context,
+                    ref,
+                    product,
+                    detail.primaryAction,
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: TevioSpacing.xl),
-            TevioSectionHeader(
-              title: '상태 확인',
-              actionLabel: '지금 확인',
-              onActionPressed: product.status == RightsStatus.processing
-                  ? null
-                  : () => _confirmRecheck(context, ref, product),
-            ),
-            const SizedBox(height: TevioSpacing.xs),
-            Text(
-              product.status == RightsStatus.processing
-                  ? '테비오가 최신 상태를 확인하고 있어요.'
-                  : '마지막 확인 이후 변경된 권리 정보를 확인해요.',
-              style: TevioTypography.bodyMedium.copyWith(
-                color: TevioColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: TevioSpacing.xl),
-            const TevioSectionHeader(title: '이 제품 알림'),
-            const SizedBox(height: TevioSpacing.sm),
-            _ProductAlertSettings(product: product, ref: ref),
-            const SizedBox(height: TevioSpacing.xl),
-            const TevioSectionHeader(title: '최근 기록'),
-            const SizedBox(height: TevioSpacing.sm),
-            TevioCard(
-              padding: const EdgeInsets.all(TevioSpacing.md),
-              child: Column(
-                children: [
-                  for (
-                    var index = 0;
-                    index < detail.events.take(3).length;
-                    index++
-                  )
-                    _TimelineRow(
-                      event: detail.events[index],
-                      isFirst: index == 0,
-                      isLast: index == detail.events.take(3).length - 1,
-                    ),
-                ],
-              ),
+          ),
+          if (product.status == RightsStatus.processing) ...[
+            const SizedBox(height: TevioSpacing.lg),
+            const TevioProcessTracker(
+              steps: [
+                TevioProcessStep(label: '접수'),
+                TevioProcessStep(
+                  label: '확인 중',
+                  description: '제품 정보와 공식 권리 정보를 대조하고 있어요.',
+                ),
+                TevioProcessStep(label: '판단'),
+                TevioProcessStep(label: '완료'),
+              ],
+              currentStep: 1,
+              updatedAt: '방금',
             ),
           ],
-        ),
+          const SizedBox(height: TevioSpacing.xl),
+          const TevioSectionHeader(title: '권리 상태'),
+          const SizedBox(height: TevioSpacing.sm),
+          TevioRightsRail(
+            items: [
+              for (final item in detail.rights)
+                TevioRightRailItem(
+                  label: item.title,
+                  value: item.value,
+                  description: item.description,
+                  status: item.status,
+                  onTap: () => _showRightsActionSheet(
+                    context,
+                    ref,
+                    product,
+                    item.action,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: TevioSpacing.xl),
+          TevioSectionHeader(
+            title: '증빙 보관함',
+            actionLabel: '수정',
+            onActionPressed: () => _showProductEditSheet(context, ref, product),
+          ),
+          const SizedBox(height: TevioSpacing.sm),
+          TevioEvidenceVault(
+            items: [
+              TevioEvidenceItem(label: '영수증', value: product.receiptStatus),
+              TevioEvidenceItem(label: '구매일', value: product.purchasedAt),
+              TevioEvidenceItem(label: '구매처', value: product.purchaseStore),
+              TevioEvidenceItem(
+                label: '모델번호',
+                value: product.modelNumber,
+                isReady: product.modelNumber.trim().isNotEmpty,
+              ),
+            ],
+          ),
+          const SizedBox(height: TevioSpacing.sm),
+          TevioListRow(
+            icon: Icons.refresh,
+            title: product.status == RightsStatus.processing
+                ? '최신 상태 확인 중'
+                : '권리 상태 다시 확인',
+            description: product.status == RightsStatus.processing
+                ? '확인이 끝나면 활동 기록에 남겨드려요.'
+                : '등록된 정보로 리콜·보증·반품 상태를 다시 조회해요.',
+            onTap: product.status == RightsStatus.processing
+                ? null
+                : () => _confirmRecheck(context, ref, product),
+          ),
+          const SizedBox(height: TevioSpacing.xl),
+          const TevioSectionHeader(title: '이 제품 알림 예외'),
+          const SizedBox(height: TevioSpacing.sm),
+          Text(
+            '마이의 전체 알림 설정보다 이 제품의 선택을 우선 적용해요.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: TevioSpacing.sm),
+          _ProductAlertSettings(product: product, ref: ref),
+          const SizedBox(height: TevioSpacing.xl),
+          const TevioSectionHeader(title: '최근 기록'),
+          const SizedBox(height: TevioSpacing.sm),
+          Column(
+            children: [
+              for (var index = 0; index < detail.events.take(3).length; index++)
+                _TimelineRow(
+                  event: detail.events[index],
+                  isFirst: index == 0,
+                  isLast: index == detail.events.take(3).length - 1,
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -492,97 +490,14 @@ class ProductDetailPage extends ConsumerWidget {
   }
 }
 
-class _ProductHeader extends StatelessWidget {
-  const _ProductHeader({required this.product});
-
-  final ProductSummary product;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(product.name, style: TevioTypography.titleLarge),
-              const SizedBox(height: TevioSpacing.xxs),
-              Text(
-                '${product.brand} · ${product.modelNumber}',
-                style: TevioTypography.bodyMedium.copyWith(
-                  color: TevioColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: TevioSpacing.md),
-        TevioStatusBadge(status: product.status),
-      ],
-    );
-  }
-}
-
-class _PrimaryActionPanel extends StatelessWidget {
-  const _PrimaryActionPanel({
-    required this.status,
-    required this.title,
-    required this.description,
-    required this.actionLabel,
-    required this.onTap,
-  });
-
-  final RightsStatus status;
-  final String title;
-  final String description;
-  final String actionLabel;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return TevioCard(
-      padding: const EdgeInsets.all(TevioSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _ActionIndicator(status: status),
-              const SizedBox(width: TevioSpacing.xs),
-              Text(
-                _actionEyebrow,
-                style: textTheme.labelLarge?.copyWith(
-                  color: status.foreground,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: TevioSpacing.md),
-          Text(title, style: textTheme.titleLarge),
-          const SizedBox(height: TevioSpacing.xs),
-          Text(description, style: textTheme.bodyMedium),
-          const SizedBox(height: TevioSpacing.lg),
-          TevioButton(label: actionLabel, onPressed: onTap),
-        ],
-      ),
-    );
-  }
-
-  String get _actionEyebrow {
-    return switch (status) {
-      RightsStatus.urgent => '지금 확인해 주세요',
-      RightsStatus.actionRequired => '확인이 필요해요',
-      RightsStatus.detected => '확인하고 있어요',
-      RightsStatus.processing => '처리 중이에요',
-      RightsStatus.safe || RightsStatus.completed => '현재 상태',
-      RightsStatus.unknown => '정보가 필요해요',
-    };
-  }
-}
+String _decisionContext(RightsStatus status) => switch (status) {
+  RightsStatus.urgent => '지금 확인해 주세요',
+  RightsStatus.actionRequired => '기한 전에 확인해 주세요',
+  RightsStatus.detected => '새로운 변화를 확인했어요',
+  RightsStatus.processing => '테비오가 확인하고 있어요',
+  RightsStatus.safe || RightsStatus.completed => '현재 권리는 안전해요',
+  RightsStatus.unknown => '정보를 보완해 주세요',
+};
 
 class _ProductAlertSettings extends StatelessWidget {
   const _ProductAlertSettings({required this.product, required this.ref});
@@ -592,32 +507,29 @@ class _ProductAlertSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TevioCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          _ProductAlertToggle(
-            title: '리콜 및 안전 문제',
-            value: product.recallAlertEnabled,
-            onChanged: (value) =>
-                _save(context, product.copyWith(recallAlertEnabled: value)),
-            isFirst: true,
-          ),
-          _ProductAlertToggle(
-            title: '보증 만료',
-            value: product.warrantyAlertEnabled,
-            onChanged: (value) =>
-                _save(context, product.copyWith(warrantyAlertEnabled: value)),
-          ),
-          _ProductAlertToggle(
-            title: '반품·교환 기간',
-            value: product.returnAlertEnabled,
-            onChanged: (value) =>
-                _save(context, product.copyWith(returnAlertEnabled: value)),
-            isLast: true,
-          ),
-        ],
-      ),
+    return TevioListSection(
+      children: [
+        _ProductAlertToggle(
+          title: '리콜 및 안전 문제',
+          value: product.recallAlertEnabled,
+          onChanged: (value) =>
+              _save(context, product.copyWith(recallAlertEnabled: value)),
+          isFirst: true,
+        ),
+        _ProductAlertToggle(
+          title: '보증 만료',
+          value: product.warrantyAlertEnabled,
+          onChanged: (value) =>
+              _save(context, product.copyWith(warrantyAlertEnabled: value)),
+        ),
+        _ProductAlertToggle(
+          title: '반품·교환 기간',
+          value: product.returnAlertEnabled,
+          onChanged: (value) =>
+              _save(context, product.copyWith(returnAlertEnabled: value)),
+          isLast: true,
+        ),
+      ],
     );
   }
 
@@ -665,104 +577,6 @@ class _ProductAlertToggle extends StatelessWidget {
   }
 }
 
-class _ActionIndicator extends StatelessWidget {
-  const _ActionIndicator({required this.status});
-
-  final RightsStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: TevioSpacing.sm,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: status.foreground,
-          shape: BoxShape.circle,
-        ),
-      ),
-    );
-  }
-}
-
-class _RightsStatusRow extends StatelessWidget {
-  const _RightsStatusRow({required this.item, required this.onTap});
-
-  final _RightsDetailItem item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Material(
-      color: TevioColors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: TevioRadius.mediumBorder,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: TevioSpacing.md),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(item.title, style: textTheme.titleMedium),
-                        ),
-                        _RightsValuePill(item: item),
-                      ],
-                    ),
-                    const SizedBox(height: TevioSpacing.xxs),
-                    Text(
-                      item.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RightsValuePill extends StatelessWidget {
-  const _RightsValuePill({required this.item});
-
-  final _RightsDetailItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: item.status.background,
-        borderRadius: TevioRadius.fullBorder,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TevioSpacing.sm,
-          vertical: TevioSpacing.xxs,
-        ),
-        child: Text(
-          item.value,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: item.status.foreground,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _RightsActionSheet extends StatelessWidget {
   const _RightsActionSheet({required this.action});
 
@@ -772,52 +586,45 @@ class _RightsActionSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return TevioSheet(
       title: action.title,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.66,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: action.status.background,
-                  borderRadius: TevioRadius.fullBorder,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(TevioSpacing.md),
-                  child: Icon(action.icon, color: action.status.foreground),
-                ),
-              ),
-              const SizedBox(height: TevioSpacing.md),
-              Text(
-                action.description,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: TevioSpacing.lg),
-              TevioCard(
-                padding: const EdgeInsets.all(TevioSpacing.md),
-                child: Column(
-                  children: [
-                    for (final item in action.items) ...[
-                      TevioInfoRow(label: item.label, value: item.value),
-                      if (item != action.items.last)
-                        const Divider(height: TevioSpacing.xl),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: TevioSpacing.lg),
-              TevioButton(
-                label: action.ctaLabel,
-                icon: action.ctaIcon,
-                onPressed: () => Navigator.of(context).pop(action.canComplete),
-              ),
-            ],
+      footer: TevioButton(
+        label: action.ctaLabel,
+        icon: action.ctaIcon,
+        onPressed: () => Navigator.of(context).pop(action.canComplete),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: action.status.background,
+              borderRadius: TevioRadius.fullBorder,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(TevioSpacing.md),
+              child: Icon(action.icon, color: action.status.foreground),
+            ),
           ),
-        ),
+          const SizedBox(height: TevioSpacing.md),
+          Text(
+            action.description,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: TevioSpacing.lg),
+          TevioCard(
+            padding: const EdgeInsets.all(TevioSpacing.md),
+            child: Column(
+              children: [
+                for (final item in action.items) ...[
+                  TevioInfoRow(label: item.label, value: item.value),
+                  if (item != action.items.last)
+                    const Divider(height: TevioSpacing.xl),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: TevioSpacing.sm),
+        ],
       ),
     );
   }
@@ -846,6 +653,7 @@ class _ProductEditSheetState extends State<_ProductEditSheet> {
   late final TextEditingController _purchasedAtController;
   late final TextEditingController _purchaseStoreController;
   late final TextEditingController _receiptStatusController;
+  DateTime? _purchaseDate;
 
   @override
   void initState() {
@@ -858,6 +666,7 @@ class _ProductEditSheetState extends State<_ProductEditSheet> {
     _purchasedAtController = TextEditingController(
       text: widget.product.purchasedAt,
     );
+    _purchaseDate = _parseStoredDate(widget.product.purchasedAt);
     _purchaseStoreController = TextEditingController(
       text: widget.product.purchaseStore,
     );
@@ -881,69 +690,89 @@ class _ProductEditSheetState extends State<_ProductEditSheet> {
   Widget build(BuildContext context) {
     return TevioSheet(
       title: '제품 정보 수정',
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom + TevioSpacing.lg,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '정보를 바꾸면 테비오가 리콜, 보증, 반품·교환 가능 기간을 다시 확인합니다.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: TevioSpacing.lg),
-              _EditField(label: '제품명', controller: _nameController),
-              const SizedBox(height: TevioSpacing.md),
-              _EditField(label: '제조사', controller: _brandController),
-              const SizedBox(height: TevioSpacing.md),
-              _EditField(label: '모델번호', controller: _modelNumberController),
-              const SizedBox(height: TevioSpacing.md),
-              _EditField(label: '구매일', controller: _purchasedAtController),
-              const SizedBox(height: TevioSpacing.md),
-              _EditField(label: '구매처', controller: _purchaseStoreController),
-              const SizedBox(height: TevioSpacing.md),
-              _EditField(label: '영수증', controller: _receiptStatusController),
-              const SizedBox(height: TevioSpacing.lg),
-              TevioButton(
-                label: '저장',
-                icon: Icons.check,
-                onPressed: () => Navigator.of(context).pop(
-                  widget.product.copyWith(
-                    name: _valueOrCurrent(_nameController, widget.product.name),
-                    brand: _valueOrCurrent(
-                      _brandController,
-                      widget.product.brand,
-                    ),
-                    modelNumber: _valueOrCurrent(
-                      _modelNumberController,
-                      widget.product.modelNumber,
-                    ),
-                    purchasedAt: _valueOrCurrent(
-                      _purchasedAtController,
-                      widget.product.purchasedAt,
-                    ),
-                    purchaseStore: _valueOrCurrent(
-                      _purchaseStoreController,
-                      widget.product.purchaseStore,
-                    ),
-                    receiptStatus: _valueOrCurrent(
-                      _receiptStatusController,
-                      widget.product.receiptStatus,
-                    ),
-                    status: RightsStatus.detected,
-                    statusSummary: '제품 정보가 수정되어 테비오가 다시 확인하고 있어요.',
-                    recommendedAction: '권리 상태 확인',
-                  ),
-                ),
-              ),
-            ],
+      footer: TevioButton(
+        label: '변경 내용 저장',
+        icon: Icons.check,
+        onPressed: _save,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '정보를 바꾸면 테비오가 리콜, 보증, 반품·교환 가능 기간을 다시 확인합니다.',
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
-        ),
+          const SizedBox(height: TevioSpacing.lg),
+          _EditField(label: '제품명', controller: _nameController),
+          const SizedBox(height: TevioSpacing.md),
+          _EditField(label: '제조사', controller: _brandController),
+          const SizedBox(height: TevioSpacing.md),
+          _EditField(label: '모델번호', controller: _modelNumberController),
+          const SizedBox(height: TevioSpacing.md),
+          TevioDateField(
+            label: '구매일',
+            value: _purchaseDate,
+            firstDate: DateTime(2000),
+            lastDate: DateTime.now(),
+            helpText: '구매일을 선택하세요',
+            onChanged: (date) {
+              if (date == null) return;
+              setState(() {
+                _purchaseDate = date;
+                _purchasedAtController.text = _formatDate(date);
+              });
+            },
+          ),
+          const SizedBox(height: TevioSpacing.md),
+          _EditField(label: '구매처', controller: _purchaseStoreController),
+          const SizedBox(height: TevioSpacing.md),
+          _EditField(label: '영수증', controller: _receiptStatusController),
+          const SizedBox(height: TevioSpacing.sm),
+        ],
       ),
     );
+  }
+
+  void _save() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop(
+      widget.product.copyWith(
+        name: _valueOrCurrent(_nameController, widget.product.name),
+        brand: _valueOrCurrent(_brandController, widget.product.brand),
+        modelNumber: _valueOrCurrent(
+          _modelNumberController,
+          widget.product.modelNumber,
+        ),
+        purchasedAt: _valueOrCurrent(
+          _purchasedAtController,
+          widget.product.purchasedAt,
+        ),
+        purchaseStore: _valueOrCurrent(
+          _purchaseStoreController,
+          widget.product.purchaseStore,
+        ),
+        receiptStatus: _valueOrCurrent(
+          _receiptStatusController,
+          widget.product.receiptStatus,
+        ),
+        status: RightsStatus.detected,
+        statusSummary: '제품 정보가 수정되어 테비오가 다시 확인하고 있어요.',
+        recommendedAction: '권리 상태 확인',
+      ),
+    );
+  }
+
+  DateTime? _parseStoredDate(String value) {
+    final normalized = value.replaceAll(' ', '').replaceAll('.', '-');
+    final trimmed = normalized.endsWith('-')
+        ? normalized.substring(0, normalized.length - 1)
+        : normalized;
+    return DateTime.tryParse(trimmed);
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year.toString().padLeft(4, '0')}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
   }
 
   String _valueOrCurrent(

@@ -28,29 +28,37 @@ class _SplashPageState extends State<SplashPage> {
     return Scaffold(
       backgroundColor: TevioColors.primary,
       body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        child: Padding(
+          padding: const EdgeInsets.all(TevioSpacing.xl),
+          child: Stack(
             children: [
-              const TevioLogo(
-                variant: TevioLogoVariant.symbol,
-                size: 96,
-                foregroundColor: TevioColors.white,
-              ),
-              const SizedBox(height: TevioSpacing.lg),
-              Text(
-                '테비오',
-                style: TevioTypography.display.copyWith(
-                  color: TevioColors.white,
-                  fontWeight: FontWeight.w800,
+              const Center(
+                child: TevioLogo(
+                  variant: TevioLogoVariant.symbol,
+                  size: 96,
+                  foregroundColor: TevioColors.white,
                 ),
               ),
-              const SizedBox(height: TevioSpacing.xs),
-              Text(
-                '구매 이후까지, 테비오',
-                style: TevioTypography.bodyMedium.copyWith(
-                  color: TevioColors.whiteMuted,
-                  fontWeight: FontWeight.w600,
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '구매 이후의 권리를\n필요한 행동으로 연결합니다.',
+                      style: TevioTypography.titleLarge.copyWith(
+                        color: TevioColors.white,
+                      ),
+                    ),
+                    const SizedBox(height: TevioSpacing.sm),
+                    Text(
+                      'TEVIO',
+                      style: TevioTypography.label.copyWith(
+                        color: TevioColors.whiteMuted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
