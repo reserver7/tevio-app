@@ -20,6 +20,7 @@ class ProductRegistrationDraft {
     required this.modelNumber,
     required this.purchasedAt,
     required this.purchaseStore,
+    required this.mediaPath,
     required this.recallAlert,
     required this.warrantyAlert,
     required this.returnAlert,
@@ -32,6 +33,7 @@ class ProductRegistrationDraft {
   final String modelNumber;
   final String purchasedAt;
   final String purchaseStore;
+  final String? mediaPath;
   final bool recallAlert;
   final bool warrantyAlert;
   final bool returnAlert;
