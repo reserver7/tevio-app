@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../shared/design_system/tevio_design_system.dart';
@@ -115,6 +116,13 @@ class AppTheme {
           return TevioColors.divider;
         }),
       ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+        },
+      ),
     );
   }
 
@@ -141,6 +149,18 @@ class AppTheme {
         foregroundColor: TevioColors.white,
         surfaceTintColor: TevioColors.transparent,
         elevation: 0,
+      ),
+      dividerTheme: const DividerThemeData(
+        color: TevioColors.darkBorder,
+        thickness: 1,
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: TevioColors.darkSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: TevioRadius.largeBorder,
+          side: const BorderSide(color: TevioColors.darkBorder),
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -172,6 +192,13 @@ class AppTheme {
           color: TevioColors.textTertiary,
         ),
         errorStyle: TevioTypography.label.copyWith(color: TevioColors.danger),
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+        },
       ),
     );
   }

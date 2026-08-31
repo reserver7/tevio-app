@@ -6,6 +6,7 @@ class TevioAppBar extends StatelessWidget implements PreferredSizeWidget {
   const TevioAppBar({
     super.key,
     required this.title,
+    this.titleWidget,
     this.leading,
     this.actions,
     this.automaticallyImplyLeading = true,
@@ -13,6 +14,7 @@ class TevioAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   final String title;
+  final Widget? titleWidget;
   final Widget? leading;
   final List<Widget>? actions;
   final bool automaticallyImplyLeading;
@@ -27,20 +29,22 @@ class TevioAppBar extends StatelessWidget implements PreferredSizeWidget {
       toolbarHeight: 56,
       titleSpacing: TevioSpacing.lg,
       leading: leading,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-          if (subtitle != null)
-            Text(
-              subtitle!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-        ],
-      ),
+      title:
+          titleWidget ??
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (subtitle != null)
+                Text(
+                  subtitle!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+            ],
+          ),
       actions: actions == null
           ? null
           : [

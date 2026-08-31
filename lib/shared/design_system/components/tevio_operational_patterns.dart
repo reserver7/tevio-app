@@ -104,14 +104,6 @@ class TevioActionCard extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  if (canOpen) ...[
-                    const SizedBox(width: TevioSpacing.xxs),
-                    const Icon(
-                      Icons.arrow_forward,
-                      color: TevioColors.primary,
-                      size: TevioDimensions.iconSmall,
-                    ),
-                  ],
                 ],
               ),
             ],
@@ -174,8 +166,16 @@ class TevioListRow extends StatelessWidget {
                 vertical: TevioSpacing.sm,
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(icon, color: iconColor),
+                  SizedBox(
+                    width: 32,
+                    height: TevioDimensions.minTouchTarget,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Icon(icon, color: iconColor),
+                    ),
+                  ),
                   const SizedBox(width: TevioSpacing.md),
                   Expanded(
                     child: Column(
@@ -198,25 +198,38 @@ class TevioListRow extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (value != null) ...[
-                    const SizedBox(width: TevioSpacing.sm),
-                    Flexible(
-                      child: Text(
-                        value!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.end,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                  ],
-                  if (shouldShowChevron) ...[
-                    const SizedBox(width: TevioSpacing.xs),
-                    Icon(
-                      Icons.chevron_right,
-                      color: TevioThemeColors.secondaryText(context),
-                    ),
-                  ],
+                  SizedBox(
+                    width: value == null ? 0 : 112,
+                    child: value == null
+                        ? null
+                        : Padding(
+                            padding: const EdgeInsets.only(
+                              left: TevioSpacing.sm,
+                            ),
+                            child: Text(
+                              value!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.end,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                  ),
+                  SizedBox(
+                    width: shouldShowChevron
+                        ? TevioDimensions.minTouchTarget
+                        : 0,
+                    height: TevioDimensions.minTouchTarget,
+                    child: shouldShowChevron
+                        ? Align(
+                            alignment: Alignment.centerRight,
+                            child: Icon(
+                              Icons.chevron_right,
+                              color: TevioThemeColors.secondaryText(context),
+                            ),
+                          )
+                        : null,
+                  ),
                 ],
               ),
             ),

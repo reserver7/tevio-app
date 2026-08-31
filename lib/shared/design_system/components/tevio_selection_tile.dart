@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../tokens/tevio_colors.dart';
 import '../tokens/tevio_dimensions.dart';
-import '../tokens/tevio_motion.dart';
 import '../tokens/tevio_radius.dart';
 import '../tokens/tevio_spacing.dart';
 import '../tokens/tevio_theme_colors.dart';
@@ -35,33 +34,48 @@ class TevioSelectionTile extends StatelessWidget {
         color: TevioColors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: TevioRadius.largeBorder,
-          child: AnimatedContainer(
-            duration: TevioMotion.fast,
+          borderRadius: TevioRadius.mediumBorder,
+          splashFactory: NoSplash.splashFactory,
+          splashColor: TevioColors.transparent,
+          highlightColor: TevioColors.transparent,
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) {
+              return TevioColors.primary.withValues(alpha: 0.06);
+            }
+            return TevioColors.transparent;
+          }),
+          child: Container(
             constraints: const BoxConstraints(
               minHeight: TevioDimensions.minTouchTarget,
             ),
             decoration: BoxDecoration(
               color: selected
                   ? TevioThemeColors.selectedSurface(context)
-                  : TevioThemeColors.surface(context),
-              borderRadius: TevioRadius.largeBorder,
-              border: Border.all(
-                color: selected
-                    ? TevioColors.primary
-                    : TevioThemeColors.border(context),
-              ),
+                  : TevioColors.transparent,
+              borderRadius: TevioRadius.mediumBorder,
             ),
             child: Padding(
               padding: const EdgeInsets.all(TevioSpacing.md),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    icon,
-                    color: selected
-                        ? TevioColors.primary
-                        : TevioThemeColors.secondaryText(context),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? TevioColors.primary
+                          : TevioThemeColors.selectedSurface(context),
+                      borderRadius: TevioRadius.mediumBorder,
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 21,
+                      color: selected
+                          ? TevioColors.white
+                          : TevioThemeColors.secondaryText(context),
+                    ),
                   ),
                   const SizedBox(width: TevioSpacing.md),
                   Expanded(
@@ -75,16 +89,32 @@ class TevioSelectionTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: TevioSpacing.sm),
-                  AnimatedSwitcher(
-                    duration: TevioMotion.fast,
-                    child: Icon(
-                      selected
-                          ? Icons.check_circle
-                          : Icons.radio_button_unchecked,
-                      key: ValueKey(selected),
-                      color: selected
-                          ? TevioColors.primary
-                          : TevioThemeColors.secondaryText(context),
+                  SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? TevioColors.mint
+                            : TevioColors.transparent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: selected
+                              ? TevioColors.mint
+                              : TevioThemeColors.border(context),
+                        ),
+                      ),
+                      child: Opacity(
+                        opacity: selected ? 1 : 0,
+                        child: const Icon(
+                          Icons.check,
+                          size: 15,
+                          color: TevioColors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ],

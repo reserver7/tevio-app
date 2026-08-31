@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../tokens/tevio_colors.dart';
@@ -60,13 +61,8 @@ class TevioDateField extends StatelessWidget {
               onTap: !enabled
                   ? null
                   : () async {
-                      final selected = await showDatePicker(
-                        context: context,
-                        initialDate: value ?? DateTime.now(),
-                        firstDate: firstDate,
-                        lastDate: lastDate,
-                        helpText: helpText ?? label,
-                      );
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      final selected = await _pickDate(context);
                       if (selected != null) onChanged(selected);
                     },
               child: Container(
@@ -85,7 +81,13 @@ class TevioDateField extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 20),
+                    Icon(
+                      Icons.calendar_month_outlined,
+                      size: 20,
+                      color: enabled
+                          ? TevioColors.primary
+                          : TevioThemeColors.secondaryText(context),
+                    ),
                     const SizedBox(width: TevioSpacing.sm),
                     Expanded(
                       child: Text(
@@ -101,9 +103,14 @@ class TevioDateField extends StatelessWidget {
                       ),
                       const SizedBox(width: TevioSpacing.xs),
                     ],
-                    Icon(
-                      Icons.chevron_right,
-                      color: TevioThemeColors.secondaryText(context),
+                    Text(
+                      value == null ? '선택 필요' : '선택됨',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: value == null
+                            ? TevioThemeColors.secondaryText(context)
+                            : TevioColors.mint,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -122,6 +129,77 @@ class TevioDateField extends StatelessWidget {
         ],
       ],
     );
+  }
+
+  Future<DateTime?> _pickDate(BuildContext context) {
+    final platform = Theme.of(context).platform;
+    final initialDate = _clampedInitialDate();
+    if (platform != TargetPlatform.iOS && platform != TargetPlatform.macOS) {
+      return showDatePicker(
+        context: context,
+        initialDate: initialDate,
+        firstDate: firstDate,
+        lastDate: lastDate,
+        helpText: helpText ?? label,
+      );
+    }
+
+    var candidate = initialDate;
+    return showCupertinoModalPopup<DateTime>(
+      context: context,
+      builder: (sheetContext) => Container(
+        height: 320,
+        color: TevioThemeColors.surface(sheetContext),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: TevioSpacing.sm,
+                ),
+                child: Row(
+                  children: [
+                    CupertinoButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      child: const Text('취소'),
+                    ),
+                    Expanded(
+                      child: Text(
+                        helpText ?? label,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(sheetContext).textTheme.titleSmall,
+                      ),
+                    ),
+                    CupertinoButton(
+                      onPressed: () =>
+                          Navigator.of(sheetContext).pop(candidate),
+                      child: const Text('완료'),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.date,
+                  initialDateTime: initialDate,
+                  minimumDate: firstDate,
+                  maximumDate: lastDate,
+                  onDateTimeChanged: (date) => candidate = date,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  DateTime _clampedInitialDate() {
+    final candidate = value ?? DateTime.now();
+    if (candidate.isBefore(firstDate)) return firstDate;
+    if (candidate.isAfter(lastDate)) return lastDate;
+    return candidate;
   }
 }
 

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../tokens/tevio_colors.dart';
 import '../tokens/tevio_dimensions.dart';
 import '../tokens/tevio_motion.dart';
-import '../tokens/tevio_radius.dart';
 import '../tokens/tevio_theme_colors.dart';
 
 class TevioBottomNavigation extends StatelessWidget {
@@ -18,8 +17,7 @@ class TevioBottomNavigation extends StatelessWidget {
 
   static const _items = [
     _NavigationItem(Icons.home_outlined, Icons.home, '홈'),
-    _NavigationItem(Icons.inventory_2_outlined, Icons.inventory_2, '내 제품'),
-    _NavigationItem(Icons.add_circle_outline, Icons.add_circle, '등록'),
+    _NavigationItem(Icons.inventory_2_outlined, Icons.inventory_2, '제품'),
     _NavigationItem(Icons.person_outline, Icons.person, '마이'),
   ];
 
@@ -74,26 +72,35 @@ class _NavigationButton extends StatelessWidget {
         message: item.label,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: TevioRadius.fullBorder,
-          child: AnimatedContainer(
-            duration: TevioMotion.fast,
-            curve: TevioMotion.standardCurve,
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: selected
-                  ? TevioThemeColors.selectedSurface(context)
-                  : TevioColors.transparent,
-              borderRadius: TevioRadius.fullBorder,
-            ),
-            child: Center(
-              child: AnimatedSwitcher(
-                duration: TevioMotion.fast,
-                child: Icon(
-                  selected ? item.selectedIcon : item.icon,
-                  key: ValueKey(selected),
-                  color: color,
-                  size: 24,
-                ),
+          child: Center(
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  AnimatedSwitcher(
+                    duration: TevioMotion.fast,
+                    child: Icon(
+                      selected ? item.selectedIcon : item.icon,
+                      key: ValueKey(selected),
+                      color: color,
+                      size: 25,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 1,
+                    child: AnimatedContainer(
+                      duration: TevioMotion.fast,
+                      width: selected ? 16 : 0,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: TevioColors.mint,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

@@ -16,6 +16,7 @@ class TevioTextField extends StatelessWidget {
     this.readOnly = false,
     this.onTap,
     this.onChanged,
+    this.onSubmitted,
     this.prefixIcon,
     this.suffixIcon,
     this.obscureText = false,
@@ -37,6 +38,7 @@ class TevioTextField extends StatelessWidget {
   final bool readOnly;
   final VoidCallback? onTap;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final bool obscureText;
@@ -68,6 +70,7 @@ class TevioTextField extends StatelessWidget {
             enabled: enabled,
             onTap: onTap,
             onChanged: onChanged,
+            onSubmitted: onSubmitted,
             obscureText: obscureText,
             maxLines: obscureText ? 1 : maxLines,
             minLines: obscureText ? 1 : minLines,

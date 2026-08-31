@@ -4,7 +4,6 @@ import '../tokens/tevio_colors.dart';
 import '../tokens/tevio_spacing.dart';
 import '../tokens/tevio_theme_colors.dart';
 import 'tevio_button.dart';
-import 'tevio_logo.dart';
 
 class TevioLoadingState extends StatelessWidget {
   const TevioLoadingState({super.key, this.label = '불러오는 중이에요'});
@@ -16,16 +15,18 @@ class TevioLoadingState extends StatelessWidget {
     return Semantics(
       liveRegion: true,
       label: label,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: TevioSpacing.xl),
+        child: Row(
           children: [
             const SizedBox.square(
-              dimension: 28,
-              child: CircularProgressIndicator.adaptive(strokeWidth: 3),
+              dimension: 24,
+              child: CircularProgressIndicator.adaptive(strokeWidth: 2.5),
             ),
-            const SizedBox(height: TevioSpacing.md),
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(width: TevioSpacing.md),
+            Expanded(
+              child: Text(label, style: Theme.of(context).textTheme.bodyLarge),
+            ),
           ],
         ),
       ),
@@ -52,34 +53,12 @@ class TevioEmptyState extends StatelessWidget {
     return Semantics(
       container: true,
       label: '$title. $description',
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(TevioSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const TevioLogo(variant: TevioLogoVariant.symbol, size: 56),
-              const SizedBox(height: TevioSpacing.md),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: TevioSpacing.xs),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: TevioThemeColors.secondaryText(context),
-                ),
-              ),
-              if (actionLabel != null) ...[
-                const SizedBox(height: TevioSpacing.lg),
-                TevioButton(label: actionLabel!, onPressed: onActionPressed),
-              ],
-            ],
-          ),
-        ),
+      child: _StateFrame(
+        color: TevioColors.mint,
+        title: title,
+        description: description,
+        actionLabel: actionLabel,
+        onActionPressed: onActionPressed,
       ),
     );
   }
@@ -105,38 +84,72 @@ class TevioErrorState extends StatelessWidget {
       liveRegion: true,
       container: true,
       label: '$title. $description',
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(TevioSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.error_outline,
-                color: TevioColors.danger,
-                size: 40,
-              ),
-              const SizedBox(height: TevioSpacing.md),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: TevioSpacing.xs),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: TevioThemeColors.secondaryText(context),
-                ),
-              ),
-              if (onRetryPressed != null) ...[
-                const SizedBox(height: TevioSpacing.lg),
-                TevioButton(label: actionLabel, onPressed: onRetryPressed),
-              ],
-            ],
+      child: _StateFrame(
+        color: TevioColors.danger,
+        title: title,
+        description: description,
+        actionLabel: onRetryPressed == null ? null : actionLabel,
+        onActionPressed: onRetryPressed,
+      ),
+    );
+  }
+}
+
+class _StateFrame extends StatelessWidget {
+  const _StateFrame({
+    required this.color,
+    required this.title,
+    required this.description,
+    this.actionLabel,
+    this.onActionPressed,
+  });
+
+  final Color color;
+  final String title;
+  final String description;
+  final String? actionLabel;
+  final VoidCallback? onActionPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: TevioSpacing.xl),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 4,
+            height: 72,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
+          const SizedBox(width: TevioSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: TevioSpacing.xs),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: TevioThemeColors.secondaryText(context),
+                  ),
+                ),
+                if (actionLabel != null) ...[
+                  const SizedBox(height: TevioSpacing.lg),
+                  TevioButton(
+                    label: actionLabel!,
+                    onPressed: onActionPressed,
+                    isExpanded: false,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
