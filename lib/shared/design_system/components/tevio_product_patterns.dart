@@ -4,7 +4,8 @@ import '../models/rights_status.dart';
 import '../tokens/tevio_colors.dart';
 import '../tokens/tevio_motion.dart';
 import '../tokens/tevio_spacing.dart';
-import 'tevio_operational_patterns.dart';
+import '../tokens/tevio_theme_colors.dart';
+import 'tevio_status_badge.dart';
 
 class TevioProductSummaryCard extends StatelessWidget {
   const TevioProductSummaryCard({
@@ -26,13 +27,63 @@ class TevioProductSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TevioActionCard(
-      status: status,
-      eyebrow: identity,
-      title: name,
-      description: summary,
-      actionLabel: primaryLabel,
-      onPressed: onPrimaryPressed,
+    return Semantics(
+      button: onPrimaryPressed != null,
+      label: [
+        name,
+        identity,
+        status.label,
+        summary,
+        primaryLabel,
+      ].nonNulls.join(', '),
+      child: Material(
+        color: TevioColors.transparent,
+        child: InkWell(
+          onTap: onPrimaryPressed,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: TevioSpacing.md),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: TevioSpacing.xxs),
+                      Text(
+                        identity,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: TevioThemeColors.secondaryText(context),
+                            ),
+                      ),
+                      const SizedBox(height: TevioSpacing.sm),
+                      Text(
+                        summary,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      if (primaryLabel != null) ...[
+                        const SizedBox(height: TevioSpacing.xs),
+                        Text(
+                          primaryLabel!,
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(color: status.foreground),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: TevioSpacing.md),
+                TevioStatusBadge(status: status),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

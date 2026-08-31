@@ -16,19 +16,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   static const _pages = [
     _OnboardingContent(
-      icon: Icons.receipt_long_outlined,
-      title: '제품을 등록하면',
-      description: '영수증과 제품 정보를 간편하게 모아 관리할 수 있어요.',
+      eyebrow: '등록',
+      title: '구매 정보를 한 번만 남기세요',
+      description: '영수증, 모델번호, 직접 입력 중 편한 방법으로 시작할 수 있어요.',
+      highlights: ['제품과 구매일을 함께 보관', '입력한 내용은 등록 전에 다시 확인'],
     ),
     _OnboardingContent(
-      icon: Icons.radar_outlined,
-      title: '놓친 권리를 감지하고',
-      description: '리콜, 보증 만료, 반품과 교환 가능 시점을 테비오가 확인해요.',
+      eyebrow: '확인',
+      title: '놓치기 쉬운 권리를 모아 확인해요',
+      description: '리콜과 보증, 반품·교환 기간을 제품별로 정리합니다.',
+      highlights: ['긴급한 변화만 우선 안내', '정상 상태와 확인 필요 상태를 구분'],
     ),
     _OnboardingContent(
-      icon: Icons.near_me_outlined,
-      title: '필요한 행동을 알려드려요',
-      description: '지금 해야 할 일을 판단하고 A/S, 교환, 반품까지 연결해요.',
+      eyebrow: '행동',
+      title: '필요한 순간에 다음 행동을 알려드려요',
+      description: '확인에서 끝나지 않고 A/S, 교환, 반품의 진행 기록까지 이어집니다.',
+      highlights: ['제품 상태에 맞는 대표 행동', '처리 과정과 완료 기록을 한곳에서 관리'],
     ),
   ];
 
@@ -125,28 +128,19 @@ class _OnboardingPageBody extends StatelessWidget {
       padding: const EdgeInsets.all(TevioSpacing.lg),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DecoratedBox(
-            decoration: const BoxDecoration(
-              color: TevioColors.primaryBackground,
-              borderRadius: TevioRadius.largeBorder,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(TevioSpacing.xxl),
-              child: Icon(content.icon, size: 56, color: TevioColors.primary),
-            ),
+          TevioPageIntro(
+            eyebrow: content.eyebrow,
+            title: content.title,
+            description: content.description,
           ),
           const SizedBox(height: TevioSpacing.xxl),
-          Text(
-            content.title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.displaySmall,
-          ),
-          const SizedBox(height: TevioSpacing.sm),
-          Text(
-            content.description,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
+          TevioListSection(
+            children: [
+              for (final highlight in content.highlights)
+                _OnboardingHighlight(text: highlight),
+            ],
           ),
         ],
       ),
@@ -176,12 +170,36 @@ class _PageDot extends StatelessWidget {
 
 class _OnboardingContent {
   const _OnboardingContent({
-    required this.icon,
+    required this.eyebrow,
     required this.title,
     required this.description,
+    required this.highlights,
   });
 
-  final IconData icon;
+  final String eyebrow;
   final String title;
   final String description;
+  final List<String> highlights;
+}
+
+class _OnboardingHighlight extends StatelessWidget {
+  const _OnboardingHighlight({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: TevioSpacing.md),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: TevioColors.mint, size: 22),
+          const SizedBox(width: TevioSpacing.md),
+          Expanded(
+            child: Text(text, style: Theme.of(context).textTheme.bodyLarge),
+          ),
+        ],
+      ),
+    );
+  }
 }

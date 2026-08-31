@@ -25,7 +25,7 @@ class ProductRegistrationResult {
     try {
       if (!input.isValid) {
         return const TevioFailureResult(
-          TevioFailure(message: '제품명, 제조사, 모델번호를 입력해 주세요.'),
+          TevioFailure(message: '필수 제품 정보를 확인해 주세요.'),
         );
       }
 
@@ -105,7 +105,7 @@ class ProductRegistrationInput {
   bool get isValid {
     return name.isNotEmpty &&
         brand.isNotEmpty &&
-        hasValidModelNumber &&
+        (modelNumber.trim().isEmpty || hasValidModelNumber) &&
         (purchasedAt.trim().isEmpty || hasValidPurchaseDate);
   }
 
@@ -165,7 +165,7 @@ class ProductRegistrationInput {
     return ProductRegistrationInput(
       name: _valueOrDefault(name, '제품'),
       brand: _valueOrDefault(brand, '제조사 미상'),
-      modelNumber: modelNumber.trim(),
+      modelNumber: _valueOrDefault(modelNumber, '모델번호 미확인'),
       purchasedAt: _valueOrDefault(purchasedAt, '구매일 미상'),
       purchaseStore: _valueOrDefault(purchaseStore, '구매처 미상'),
       receiptStatus: _valueOrDefault(receiptStatus, '보관됨'),

@@ -2,6 +2,7 @@ SHELL := /bin/zsh
 
 ENV ?= development
 IOS_SIMULATOR ?= iPhone 17
+ANDROID_DEVICE ?= $(shell adb devices 2>/dev/null | awk 'NR > 1 && $$2 == "device" { print $$1; exit }')
 
 JAVA_HOME ?= /opt/homebrew/opt/openjdk@17
 ANDROID_SDK_ROOT ?= /opt/homebrew/share/android-commandlinetools
@@ -26,7 +27,11 @@ setup:
 	flutter pub get
 
 android:
-	flutter run --flavor $(ENV) $(DART_DEFINES)
+	@if [ -z "$(ANDROID_DEVICE)" ]; then \
+		echo "No Android device or emulator is running. Start an Android emulator or connect a device, then run make android again."; \
+		exit 1; \
+	fi
+	flutter run -d "$(ANDROID_DEVICE)" --flavor $(ENV) $(DART_DEFINES)
 
 ios:
 	xcrun simctl boot "$(IOS_SIMULATOR)" || true

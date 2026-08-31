@@ -7,511 +7,304 @@ import '../../../notifications/presentation/state/notification_queries.dart';
 import '../../../products/domain/models/product_summary.dart';
 import '../../../products/presentation/state/product_queries.dart';
 
-enum _HomePresentationType {
-  empty,
-  safe,
-  singleAction,
-  groupedAction,
-  mixedActions,
-  processing,
-  contextual,
-}
-
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final products = ref.watch(productSummariesQueryProvider);
-    final unreadNotificationsCount = ref.watch(
-      unreadNotificationsCountQueryProvider,
-    );
-    final snapshot = _HomeSnapshot.fromProducts(products);
+    final unreadCount = ref.watch(unreadNotificationsCountQueryProvider);
+    final viewData = _HomeViewData.from(products);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const TevioLogo(variant: TevioLogoVariant.symbol, size: 32),
+      appBar: TevioAppBar(
+        title: '테비오',
+        titleWidget: const TevioLogo(
+          variant: TevioLogoVariant.symbol,
+          size: 32,
+        ),
         actions: [
-          _NotificationBell(
-            unreadCount: unreadNotificationsCount,
+          TevioIconButton(
+            tooltip: unreadCount == 0 ? '활동' : '읽지 않은 활동 $unreadCount개',
+            icon: unreadCount == 0
+                ? Icons.notifications_none_outlined
+                : Icons.notifications_outlined,
+            variant: unreadCount == 0
+                ? TevioIconButtonVariant.plain
+                : TevioIconButtonVariant.tinted,
             onPressed: () => context.push('/notifications'),
           ),
         ],
       ),
-      body: SafeArea(child: _HomeContent(snapshot: snapshot)),
-    );
-  }
-}
-
-class _HomeContent extends StatelessWidget {
-  const _HomeContent({required this.snapshot});
-
-  final _HomeSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      key: const PageStorageKey('home-scroll'),
-      padding: const EdgeInsets.all(TevioSpacing.lg),
-      children: [
-        if (snapshot.presentationType != _HomePresentationType.empty)
-          AnimatedSwitcher(
-            duration: TevioMotion.normal,
-            switchInCurve: TevioMotion.standardCurve,
-            switchOutCurve: TevioMotion.standardCurve,
-            transitionBuilder: (child, animation) {
-              final offset = Tween<Offset>(
-                begin: const Offset(0, 0.03),
-                end: Offset.zero,
-              ).animate(animation);
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(position: offset, child: child),
-              );
-            },
-            child: _TodayStatusCard(
-              key: ValueKey('${snapshot.status.name}-${snapshot.title}'),
-              snapshot: snapshot,
-            ),
+      body: TevioPageScrollView(
+        storageKey: 'home-scroll',
+        children: [
+          TevioPageIntro(
+            eyebrow: '오늘의 권리 상태',
+            title: viewData.headline,
+            description: viewData.description,
           ),
-        if (snapshot.nextActions.isNotEmpty) ...[
-          const SizedBox(height: TevioSpacing.xl),
-          TevioSectionHeader(title: snapshot.secondarySectionTitle),
-          const SizedBox(height: TevioSpacing.sm),
-          for (final action in snapshot.nextActions.take(2)) ...[
-            _ActionCard(action: action),
-            const SizedBox(height: TevioSpacing.sm),
+          const SizedBox(height: TevioSpacing.lg),
+          if (products.isEmpty)
+            const _EmptyHome()
+          else ...[
+            _CoverageSummary(viewData: viewData),
+            if (viewData.primaryProduct != null) ...[
+              const SizedBox(height: TevioSpacing.xl),
+              const TevioSectionHeader(title: '지금 할 일'),
+              const SizedBox(height: TevioSpacing.sm),
+              TevioDecisionPanel(
+                status: viewData.primaryProduct!.status,
+                contextLabel:
+                    '${viewData.primaryProduct!.brand} · ${viewData.primaryProduct!.name}',
+                title: _decisionTitleFor(viewData.primaryProduct!),
+                reason: viewData.primaryProduct!.statusSummary,
+                deadline: _deadlineFor(viewData.primaryProduct!),
+                actionLabel: viewData.primaryProduct!.recommendedAction,
+                onPressed: () =>
+                    context.push('/products/${viewData.primaryProduct!.id}'),
+              ),
+              if (viewData.remainingActionCount > 0) ...[
+                const SizedBox(height: TevioSpacing.sm),
+                TevioTextAction(
+                  label: '나머지 ${viewData.remainingActionCount}건 제품에서 보기',
+                  onPressed: () => context.go('/products'),
+                ),
+              ],
+            ],
+            if (viewData.processingProducts.isNotEmpty) ...[
+              const SizedBox(height: TevioSpacing.xl),
+              _ProcessingList(products: viewData.processingProducts),
+            ],
           ],
         ],
-        if (snapshot.processing != null) ...[
-          const SizedBox(height: TevioSpacing.lg),
-          const TevioSectionHeader(title: '진행 중인 처리'),
-          const SizedBox(height: TevioSpacing.sm),
-          _ProcessingCard(item: snapshot.processing!),
-        ],
-        if (snapshot.productSummary != null &&
-            snapshot.nextActions.isEmpty &&
-            snapshot.processing == null) ...[
-          const SizedBox(height: TevioSpacing.xl),
-          TevioSectionHeader(
-            title: '내 제품 요약',
-            actionLabel: '전체 보기',
-            onActionPressed: () => context.go('/products'),
+      ),
+    );
+  }
+}
+
+class _CoverageSummary extends StatelessWidget {
+  const _CoverageSummary({required this.viewData});
+
+  final _HomeViewData viewData;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label:
+          '등록 제품 ${viewData.productCount}개, 확인 필요 ${viewData.actionCount}개, 처리 중 ${viewData.processingProducts.length}개',
+      child: Row(
+        children: [
+          Expanded(
+            child: _SummaryValue(
+              value: '${viewData.productCount}',
+              label: '등록 제품',
+            ),
           ),
-          const SizedBox(height: TevioSpacing.sm),
-          _ProductSummary(summary: snapshot.productSummary!),
+          const SizedBox(
+            height: 32,
+            child: VerticalDivider(width: TevioSpacing.xl),
+          ),
+          Expanded(
+            child: _SummaryValue(
+              value: '${viewData.actionCount}',
+              label: '확인 필요',
+            ),
+          ),
+          const SizedBox(
+            height: 32,
+            child: VerticalDivider(width: TevioSpacing.xl),
+          ),
+          Expanded(
+            child: _SummaryValue(
+              value: '${viewData.processingProducts.length}',
+              label: '처리 중',
+            ),
+          ),
         ],
-        if (snapshot.contextualCta != null) ...[
-          const SizedBox(height: TevioSpacing.xl),
-          _ContextualCta(cta: snapshot.contextualCta!),
-        ],
+      ),
+    );
+  }
+}
+
+class _SummaryValue extends StatelessWidget {
+  const _SummaryValue({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: TevioTypography.titleLarge),
+        const SizedBox(height: TevioSpacing.xxs),
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
       ],
     );
   }
 }
 
-class _NotificationBell extends StatelessWidget {
-  const _NotificationBell({required this.unreadCount, required this.onPressed});
+String? _deadlineFor(ProductSummary product) => switch (product.status) {
+  RightsStatus.actionRequired => product.warrantyText,
+  RightsStatus.detected => product.returnText,
+  _ => null,
+};
 
-  final int unreadCount;
-  final VoidCallback onPressed;
+String _decisionTitleFor(ProductSummary product) => switch (product.status) {
+  RightsStatus.urgent => '안전을 위해 리콜 대상을 확인하세요',
+  RightsStatus.actionRequired => '보증이 끝나기 전에 필요한 내용을 확인하세요',
+  RightsStatus.detected => '새로 감지된 권리 변화를 확인하세요',
+  RightsStatus.processing => '권리 정보를 확인하고 있어요',
+  RightsStatus.unknown => '판단에 필요한 제품 정보를 보완하세요',
+  RightsStatus.safe || RightsStatus.completed => '현재 확인할 문제는 없어요',
+};
+
+class _ProcessingList extends StatelessWidget {
+  const _ProcessingList({required this.products});
+
+  final List<ProductSummary> products;
 
   @override
   Widget build(BuildContext context) {
-    return TevioIconButton(
-      tooltip: '알림',
-      onPressed: onPressed,
-      icon: unreadCount == 0
-          ? Icons.notifications_none_outlined
-          : Icons.notifications_outlined,
-      variant: unreadCount == 0
-          ? TevioIconButtonVariant.plain
-          : TevioIconButtonVariant.tinted,
+    final product = products.first;
+    return TevioListSection(
+      title: '진행 중인 처리',
+      description: '상태가 바뀌면 활동에서 알려드려요.',
+      children: [
+        TevioProcessTracker(
+          steps: const [
+            TevioProcessStep(label: '접수'),
+            TevioProcessStep(
+              label: '확인 중',
+              description: '제품 정보와 권리 상태를 확인하고 있어요.',
+            ),
+            TevioProcessStep(label: '처리'),
+            TevioProcessStep(label: '완료'),
+          ],
+          currentStep: 1,
+          updatedAt: '오늘',
+        ),
+        if (products.length > 1)
+          TevioTextAction(
+            label: '진행 중 ${products.length}건 제품에서 보기',
+            onPressed: () => context.go('/products'),
+          )
+        else
+          TevioTextAction(
+            label: '${product.name} 상태 확인',
+            onPressed: () => context.push('/products/${product.id}'),
+          ),
+      ],
     );
   }
 }
 
-class _TodayStatusCard extends StatelessWidget {
-  const _TodayStatusCard({super.key, required this.snapshot});
-
-  final _HomeSnapshot snapshot;
+class _EmptyHome extends StatelessWidget {
+  const _EmptyHome();
 
   @override
   Widget build(BuildContext context) {
-    return TevioActionCard(
-      status: snapshot.status,
-      eyebrow: snapshot.eyebrow,
-      title: snapshot.title,
-      description: snapshot.description,
-      supportingText: snapshot.summary,
-      actionLabel: snapshot.primaryAction?.ctaLabel,
-      onPressed: snapshot.primaryAction == null
-          ? null
-          : () => context.go(snapshot.primaryAction!.route),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: TevioSpacing.sm),
+        Text('제품 하나로 시작하세요', style: TevioTypography.titleLarge),
+        const SizedBox(height: TevioSpacing.xs),
+        Text(
+          '영수증이나 모델번호를 등록하면 리콜과 보증 정보를 계속 확인해 드려요.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: TevioSpacing.lg),
+        TevioButton(
+          label: '첫 제품 등록하기',
+          icon: Icons.add,
+          onPressed: () => context.push('/register'),
+        ),
+      ],
     );
   }
 }
 
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({required this.action});
-
-  final _HomeAction action;
-
-  @override
-  Widget build(BuildContext context) {
-    return TevioActionCard(
-      status: action.status,
-      eyebrow: action.productName,
-      title: action.title,
-      description: action.reason,
-      supportingText: action.dueText,
-      actionLabel: action.ctaLabel,
-      onPressed: () => context.go(action.route),
-    );
-  }
-}
-
-class _ProcessingCard extends StatelessWidget {
-  const _ProcessingCard({required this.item});
-
-  final _ProcessingItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return TevioActionCard(
-      status: RightsStatus.processing,
-      title: item.title,
-      description: item.description,
-      supportingText: item.meta,
-      compact: true,
-    );
-  }
-}
-
-class _ProductSummary extends StatelessWidget {
-  const _ProductSummary({required this.summary});
-
-  final _ProductSummaryData summary;
-
-  @override
-  Widget build(BuildContext context) {
-    return TevioActionCard(
-      status: RightsStatus.safe,
-      title: '전체 ${summary.totalCount}개',
-      description:
-          '정상 ${summary.safeCount}개 · 확인 필요 ${summary.actionRequiredCount}개',
-      supportingText: summary.highlight,
-      compact: true,
-    );
-  }
-}
-
-class _ContextualCta extends StatelessWidget {
-  const _ContextualCta({required this.cta});
-
-  final _HomeCta cta;
-
-  @override
-  Widget build(BuildContext context) {
-    return TevioActionCard(
-      title: cta.title,
-      description: cta.description,
-      actionLabel: cta.label,
-      onPressed: () => context.go(cta.route),
-    );
-  }
-}
-
-class _HomeSnapshot {
-  const _HomeSnapshot({
-    required this.presentationType,
-    required this.status,
-    required this.title,
+class _HomeViewData {
+  const _HomeViewData({
+    required this.productCount,
+    required this.actionCount,
+    required this.headline,
     required this.description,
-    this.eyebrow,
-    this.summary,
-    this.primaryAction,
-    this.nextActions = const [],
-    this.processing,
-    this.productSummary,
-    this.recentChecks = const [],
-    this.contextualCta,
+    required this.processingProducts,
+    this.primaryProduct,
   });
 
-  final _HomePresentationType presentationType;
-  final RightsStatus status;
-  final String title;
+  final int productCount;
+  final int actionCount;
+  final String headline;
   final String description;
-  final String? eyebrow;
-  final String? summary;
-  final _HomeAction? primaryAction;
-  final List<_HomeAction> nextActions;
-  final _ProcessingItem? processing;
-  final _ProductSummaryData? productSummary;
-  final List<_RecentCheck> recentChecks;
-  final _HomeCta? contextualCta;
+  final ProductSummary? primaryProduct;
+  final List<ProductSummary> processingProducts;
 
-  String get secondarySectionTitle {
-    return switch (presentationType) {
-      _HomePresentationType.singleAction => '다음으로 확인할 일',
-      _HomePresentationType.groupedAction => '포함된 항목',
-      _HomePresentationType.mixedActions => '우선순위가 낮은 항목',
-      _HomePresentationType.empty ||
-      _HomePresentationType.safe ||
-      _HomePresentationType.processing ||
-      _HomePresentationType.contextual => '다음으로 확인할 일',
-    };
-  }
+  int get remainingActionCount => actionCount > 0 ? actionCount - 1 : 0;
 
-  factory _HomeSnapshot.fromProducts(List<ProductSummary> products) {
-    if (products.isEmpty) {
-      return const _HomeSnapshot(
-        presentationType: _HomePresentationType.empty,
-        status: RightsStatus.unknown,
-        title: '첫 제품을 등록해 보세요',
-        description: '제품과 구매 정보를 등록하면 테비오가 리콜, 보증, A/S 정보를 계속 확인해 드려요.',
-        contextualCta: _HomeCta(
-          title: '첫 제품을 등록해 보세요',
-          description: '영수증이나 모델번호만 있어도 구매 이후 권리 확인을 시작할 수 있어요.',
-          label: '제품 등록하기',
-          icon: Icons.add_box_outlined,
-          route: '/register',
-        ),
-      );
-    }
-
-    final urgentProducts = products
-        .where((product) => product.status == RightsStatus.urgent)
-        .toList();
-    final actionRequiredProducts = products
-        .where((product) => product.status == RightsStatus.actionRequired)
-        .toList();
-    final processingProducts = products
+  factory _HomeViewData.from(List<ProductSummary> products) {
+    final actionProducts = products.where(_needsAction).toList()
+      ..sort((a, b) => _priority(a.status).compareTo(_priority(b.status)));
+    final processing = products
         .where((product) => product.status == RightsStatus.processing)
         .toList();
-    final detectedProducts = products
-        .where((product) => product.status == RightsStatus.detected)
-        .toList();
-    final safeCount = products
-        .where(
-          (product) =>
-              product.status == RightsStatus.safe ||
-              product.status == RightsStatus.completed,
-        )
-        .length;
-    final attentionProducts = [
-      ...urgentProducts,
-      ...actionRequiredProducts,
-      ...detectedProducts,
-    ];
-    final primaryProduct = attentionProducts.isNotEmpty
-        ? attentionProducts.first
-        : null;
-    final productSummary = _ProductSummaryData(
-      totalCount: products.length,
-      safeCount: safeCount,
-      actionRequiredCount: attentionProducts.length,
-      highlight: attentionProducts.isEmpty
-          ? '새로운 리콜 대상은 없어요.'
-          : '${attentionProducts.first.name}부터 확인해 주세요.',
-    );
 
-    if (primaryProduct == null && processingProducts.isNotEmpty) {
-      final processingProduct = processingProducts.first;
-
-      return _HomeSnapshot(
-        presentationType: _HomePresentationType.processing,
-        status: RightsStatus.processing,
-        eyebrow: '${processingProduct.brand} ${processingProduct.name}',
-        title: '요청한 처리가 진행 중이에요',
-        description: processingProduct.statusSummary,
-        summary: processingProduct.recommendedAction,
-        recentChecks: [
-          _RecentCheck(
-            status: RightsStatus.processing,
-            title: '${processingProduct.name} 처리 상태를 확인했어요',
-            description: processingProduct.statusSummary,
-            checkedAt: '오늘 오후 2:30',
-          ),
-        ],
+    if (products.isEmpty) {
+      return const _HomeViewData(
+        productCount: 0,
+        actionCount: 0,
+        headline: '구매 이후 관리를 시작해 보세요',
+        description: '제품을 한 번 등록하면 필요한 순간을 놓치지 않게 알려드려요.',
+        processingProducts: [],
       );
     }
 
-    if (primaryProduct == null) {
-      return _HomeSnapshot(
-        presentationType: _HomePresentationType.safe,
-        status: RightsStatus.safe,
-        title: '현재 확인할 내용이 없어요',
-        description: '등록한 제품 ${products.length}개를 테비오가 계속 확인하고 있어요.',
-        summary: '마지막 확인 오늘 오후 2:30',
-        productSummary: productSummary,
-        recentChecks: [
-          _RecentCheck(
-            status: RightsStatus.safe,
-            title: '등록 제품 ${products.length}개의 권리 정보를 확인했어요',
-            description: '새로운 리콜 대상은 없어요.',
-            checkedAt: '오늘 오후 2:30',
-          ),
-        ],
+    if (actionProducts.isNotEmpty) {
+      return _HomeViewData(
+        productCount: products.length,
+        actionCount: actionProducts.length,
+        headline: '확인할 권리가 있어요',
+        description: '가장 중요한 내용부터 한 가지씩 처리해 보세요.',
+        primaryProduct: actionProducts.first,
+        processingProducts: processing,
       );
     }
 
-    final primaryAction = _HomeAction.fromProduct(primaryProduct);
-    final nextActions = attentionProducts
-        .skip(1)
-        .map(_HomeAction.fromProduct)
-        .toList();
-    final urgentCount = urgentProducts.length;
-    final actionCount = actionRequiredProducts.length + detectedProducts.length;
+    if (processing.isNotEmpty) {
+      return _HomeViewData(
+        productCount: products.length,
+        actionCount: 0,
+        headline: '요청한 처리가 진행 중이에요',
+        description: '새로운 상태가 확인되면 활동에서 알려드릴게요.',
+        processingProducts: processing,
+      );
+    }
 
-    return _HomeSnapshot(
-      presentationType: nextActions.isEmpty
-          ? _HomePresentationType.singleAction
-          : _HomePresentationType.mixedActions,
-      status: primaryProduct.status,
-      eyebrow: '${primaryProduct.brand} ${primaryProduct.name}',
-      title: _headlineFor(primaryProduct),
-      description: primaryProduct.statusSummary,
-      summary: [
-        if (urgentCount > 0) '긴급 $urgentCount개',
-        if (actionCount > 0) '확인 필요 $actionCount개',
-        if (processingProducts.isNotEmpty) '처리 중 ${processingProducts.length}개',
-      ].join(' · '),
-      primaryAction: primaryAction,
-      nextActions: nextActions,
-      processing: processingProducts.isEmpty
-          ? null
-          : _ProcessingItem.fromProduct(processingProducts.first),
-      recentChecks: [
-        _RecentCheck(
-          status: RightsStatus.safe,
-          title: '등록 제품 ${products.length}개의 권리 정보를 확인했어요',
-          description: attentionProducts.isEmpty
-              ? '새로운 리콜 대상은 없어요.'
-              : '${attentionProducts.length}개 항목은 추가 확인이 필요해요.',
-          checkedAt: '오늘 오후 2:30',
-        ),
-      ],
+    return _HomeViewData(
+      productCount: products.length,
+      actionCount: 0,
+      headline: '지금은 확인할 내용이 없어요',
+      description: '등록한 제품을 테비오가 계속 살펴보고 있어요.',
+      processingProducts: const [],
     );
   }
 
-  static String _headlineFor(ProductSummary product) {
-    return switch (product.status) {
-      RightsStatus.urgent => '${product.name} 리콜 확인이 필요해요',
-      RightsStatus.actionRequired => '${product.name} 확인이 필요해요',
-      RightsStatus.detected => '${product.name} 등록 정보를 확인 중이에요',
-      RightsStatus.processing => '${product.name} 처리가 진행 중이에요',
-      RightsStatus.safe ||
-      RightsStatus.completed ||
-      RightsStatus.unknown => '${product.name} 상태를 확인했어요',
-    };
-  }
-}
+  static bool _needsAction(ProductSummary product) =>
+      product.status == RightsStatus.urgent ||
+      product.status == RightsStatus.actionRequired ||
+      product.status == RightsStatus.detected ||
+      product.status == RightsStatus.unknown;
 
-class _HomeAction {
-  const _HomeAction({
-    required this.status,
-    required this.productName,
-    required this.title,
-    required this.reason,
-    required this.dueText,
-    required this.ctaLabel,
-    required this.route,
-  });
-
-  final RightsStatus status;
-  final String productName;
-  final String title;
-  final String reason;
-  final String dueText;
-  final String ctaLabel;
-  final String route;
-
-  factory _HomeAction.fromProduct(ProductSummary product) {
-    return _HomeAction(
-      status: product.status,
-      productName: '${product.brand} ${product.name}',
-      title: product.recommendedAction,
-      reason: product.statusSummary,
-      dueText: _dueTextFor(product),
-      ctaLabel: product.recommendedAction,
-      route: '/products/${product.id}',
-    );
-  }
-
-  static String _dueTextFor(ProductSummary product) {
-    return switch (product.status) {
-      RightsStatus.urgent => '즉시 확인 권장',
-      RightsStatus.actionRequired => product.warrantyText,
-      RightsStatus.detected => '확인 중',
-      RightsStatus.processing => '처리 중',
-      RightsStatus.safe ||
-      RightsStatus.completed ||
-      RightsStatus.unknown => product.warrantyText,
-    };
-  }
-}
-
-class _ProcessingItem {
-  const _ProcessingItem({
-    required this.title,
-    required this.description,
-    required this.meta,
-  });
-
-  final String title;
-  final String description;
-  final String meta;
-
-  factory _ProcessingItem.fromProduct(ProductSummary product) {
-    return _ProcessingItem(
-      title: '${product.name} 상태를 확인하고 있어요',
-      description: product.statusSummary,
-      meta: product.recommendedAction,
-    );
-  }
-}
-
-class _ProductSummaryData {
-  const _ProductSummaryData({
-    required this.totalCount,
-    required this.safeCount,
-    required this.actionRequiredCount,
-    required this.highlight,
-  });
-
-  final int totalCount;
-  final int safeCount;
-  final int actionRequiredCount;
-  final String highlight;
-}
-
-class _RecentCheck {
-  const _RecentCheck({
-    required this.status,
-    required this.title,
-    required this.description,
-    required this.checkedAt,
-  });
-
-  final RightsStatus status;
-  final String title;
-  final String description;
-  final String checkedAt;
-}
-
-class _HomeCta {
-  const _HomeCta({
-    required this.title,
-    required this.description,
-    required this.label,
-    required this.icon,
-    required this.route,
-  });
-
-  final String title;
-  final String description;
-  final String label;
-  final IconData icon;
-  final String route;
+  static int _priority(RightsStatus status) => switch (status) {
+    RightsStatus.urgent => 0,
+    RightsStatus.actionRequired => 1,
+    RightsStatus.unknown => 2,
+    RightsStatus.detected => 3,
+    _ => 4,
+  };
 }
